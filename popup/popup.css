@@ -1,0 +1,119 @@
+/* 
+  @license
+  Copyright 2024 Amar Kumar
+  SPDX-License-Identifier: MIT 
+*/
+
+body {
+  width: 380px;
+  padding: 15px;
+  font-family: 'Segoe UI', system-ui;
+  background: #f8f9fa;
+  color: #333;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+h1 {
+  margin: 0;
+  font-size: 1.3em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #2c3e50;
+}
+
+.api-settings {
+  background: white;
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.toggle-group {
+  display: flex;
+  align-items: center;
+  margin: 10px 0;
+}
+
+.toggle-group input {
+  margin-right: 10px;
+}
+
+.api-details {
+  display: none;
+  padding: 10px;
+  margin-top: 5px;
+  background: #f8f9fa;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+.api-details.show {
+  display: block;
+}
+
+.info-icon {
+  cursor: help;
+  font-size: 0.9em;
+  vertical-align: middle;
+}
+
+.input-group {
+  margin-top: 15px;
+}
+
+.input-group label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 5px;
+}
+
+.input-group input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin-bottom: 5px;
+}
+
+.input-group small {
+  color: #666;
+  font-size: 0.8em;
+}
+
+.action-area {
+  text-align: center;
+}
+
+#status {
+  padding: 10px;
+  min-height: 40px;
+}
+
+#analyze-btn {
+  background: #3498db;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 6px;
+  width: 100%;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.2s;
+}
+
+#analyze-btn:hover {
+  background: #2980b9;
+  transform: translateY(-1px);
+}
+
+#analyze-btn:disabled {
+  background: #95a5a6;
+  transform: none;
+  cursor: not-allowed;
+}
