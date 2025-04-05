@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Bias Neutralizer Pro",
+  "name": "BiasDetector",
   "version": "3.0",
   "description": "Detects and neutralizes bias while adding economic context",
   "permissions": [
