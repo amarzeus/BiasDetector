@@ -1,84 +1,81 @@
-# 🔍 BiasDetector Chrome Extension 
-[![Python Version](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![GitHub Stars](https://img.shields.io/github/stars/amarzeus/BiasDetector?style=social)](https://github.com/amarzeus/BiasDetector)
+# BiasDetector - Balancing News Media
 
-**AI-powered tool that detects media bias and provides contextual analysis**
+![BiasDetector Logo](extension/images/icon128.svg)
 
-![Demo](docs/assets/demo.gif)
+## Overview
+BiasDetector is a Chrome extension with a Python backend that analyzes news articles for bias and rewrites them to present balanced viewpoints. The extension helps readers gain a more objective understanding of news by highlighting bias, providing context, and offering alternative perspectives.
 
-## ✨ Features
-- 🚨 Real-time bias detection using BERT models
-- 📈 Economic context (inflation, household metrics)
-- 🟢🔴 Side-by-side comparison view
-- 🛠️ Self-contained Chrome extension + local API
+## Features
+- **Bias Detection**: Identifies political, emotional, and factual bias in news articles
+- **Content Rewriting**: Rewrites articles to present balanced viewpoints
+- **Redline Comparison**: Shows differences between original and rewritten content
+- **Context Addition**: Adds missing context to incomplete statements
+- **Source Citation**: Provides alternative sources and viewpoints
+- **Bias Scoring**: Rates websites based on detected bias over time
 
-## 🚀 Quick Start
+## Installation
 
-### Prerequisites
-- Python 3.10+
-- Chrome browser
-- [BLS API Key](https://data.bls.gov/registrationEngine/) (free)
+### Chrome Extension
+1. Clone this repository:
+   ```
+   git clone https://github.com/amarzeus/BiasDetector.git
+   ```
+2. Open Chrome and navigate to `chrome://extensions/`
+3. Enable "Developer Mode" (toggle in the top-right corner)
+4. Click "Load unpacked" and select the `extension` folder from the cloned repository
+5. The BiasDetector icon should now appear in your browser toolbar
 
-### Installation
-```powershell
-# Clone repository
-git clone https://github.com/amarzeus/BiasDetector.git
-cd BiasDetector/backend
+### Backend Setup
+1. Navigate to the backend directory:
+   ```
+   cd BiasDetector/backend
+   ```
+   
+2. Install required dependencies:
+   ```
+   pip install flask flask-cors openai nltk trafilatura gunicorn
+   ```
 
-# Install dependencies
-python -m venv venv
-venv\Scripts\activate
-pip install -r requirements.txt
+3. Download NLTK data:
+   ```
+   python -c "import nltk; nltk.download('punkt')"
+   ```
 
-# Set environment variables (PowerShell)
-[System.Environment]::SetEnvironmentVariable('BLS_API_KEY','your_key','User')
+4. Start the server:
+   ```
+   gunicorn --bind 0.0.0.0:5000 --reuse-port --reload main:app
+   ```
 
-Load Extension
-Visit chrome://extensions
+### API Key Setup (Optional)
 
-Enable Developer mode
+The extension can operate in two modes:
 
-Click Load unpacked → Select /extension folder
+#### Full Mode (with OpenAI API)
+For the complete experience with real-time bias analysis, you'll need an OpenAI API key:
 
-📸 Demo
-Original Article	Analyzed Version
-Before	After
+1. Create a `.env` file in the project root directory:
+   ```
+   OPENAI_API_KEY=your_api_key_here
+   ```
 
-🏗️ Architecture
-flowchart TD
-    A[Chrome Extension] -->|Text| B[Flask API]
-    B --> C[Bias Detection]
-    B --> D[Context Engine]
-    C --> E[Highlighted Phrases]
-    D --> F[Economic Data]
-    E & F --> G[Redline Output]
+2. Alternatively, you can add your API key in the extension settings.
 
-    📂 Files
-    BiasDetector/
-├── backend/           # Python server
-│   ├── bias_detector.py
-│   └── requirements.txt
-├── extension/         # Chrome files
-│   ├── manifest.json
-│   ├── content-script.js
-│   └── popup/
-├── docs/
-│   ├── TECHNICAL.md   # Architecture details
-│   └── assets/        # Demo media
-└── LICENSE
+#### Demo Mode (no API key required)
+The extension will run in demo mode when no API key is provided, showing placeholder content and example analysis. This is useful for testing the interface without using the OpenAI API.
+   
+### API Key Setup (Optional)
 
-🤝 How to Contribute
-Fork the repository
+The extension can operate in two modes:
 
-Create a branch (git checkout -b improve-feature)
+#### Full Mode (with OpenAI API)
+For the complete experience with real-time bias analysis, you'll need an OpenAI API key:
 
-Commit changes (git commit -m 'Add feature')
+1. Create a `.env` file in the project root directory:
+   ```
+   OPENAI_API_KEY=your_api_key_here
+   ```
+2. Alternatively, you can add your API key in the extension settings.
 
-Push (git push origin improve-feature)
+#### Demo Mode (no API key required)
+The extension will run in demo mode when no API key is provided, showing placeholder content and example analysis. This is useful for testing the interface without using the OpenAI API.
 
-Open a Pull Request
-
-📜 License
-MIT © 2024 Amar Kumar
-Project Link: https://github.com/amarzeus/BiasDetector
