@@ -1,0 +1,156 @@
+/* BiasDetector Website Styles */
+
+:root {
+  --bd-primary: #4b6cb7;
+  --bd-primary-dark: #3a5a99;
+  --bd-secondary: #6c757d;
+  --bd-success: #28a745;
+  --bd-warning: #ffc107;
+  --bd-danger: #dc3545;
+  --bd-light: #f8f9fa;
+  --bd-dark: #343a40;
+  --bd-white: #ffffff;
+}
+
+/* Hero section styles */
+.hero-section {
+  background: linear-gradient(135deg, var(--bd-primary), var(--bd-primary-dark));
+  padding: 5rem 0;
+  margin-bottom: 3rem;
+}
+
+/* Feature icons */
+.feature-icon {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 60px;
+  width: 60px;
+  margin: 0 auto;
+  border-radius: 50%;
+  background-color: rgba(75, 108, 183, 0.1);
+  color: var(--bd-primary);
+}
+
+.feature-icon i {
+  font-size: 1.75rem;
+}
+
+/* How it works steps */
+.steps {
+  counter-reset: step-counter;
+}
+
+.step {
+  display: flex;
+  margin-bottom: 2rem;
+  position: relative;
+}
+
+.step-number {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: var(--bd-primary);
+  color: white;
+  font-weight: bold;
+  margin-right: 1rem;
+  flex-shrink: 0;
+}
+
+.step-content {
+  flex-grow: 1;
+}
+
+.step:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: 20px;
+  top: 40px;
+  bottom: -20px;
+  width: 2px;
+  background-color: var(--bs-border-color);
+}
+
+/* Demo section styles */
+.demo-card {
+  border-radius: 0.5rem;
+  overflow: hidden;
+  transition: transform 0.3s ease;
+}
+
+.demo-card:hover {
+  transform: translateY(-5px);
+}
+
+/* Responsive image handling */
+.img-fluid {
+  border-radius: 0.5rem;
+}
+
+/* Installation section */
+.install-card {
+  border-radius: 0.5rem;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+}
+
+/* Footer customization */
+footer a {
+  transition: color 0.2s ease;
+}
+
+footer a:hover {
+  color: var(--bd-primary) !important;
+  text-decoration: none;
+}
+
+/* Animation for install button */
+.btn-primary {
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Custom styling for code blocks */
+code {
+  font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.875em;
+  color: #e83e8c;
+  word-wrap: break-word;
+}
+
+/* Media queries for responsive design */
+@media (max-width: 768px) {
+  .hero-section {
+    padding: 3rem 0;
+  }
+  
+  .display-4 {
+    font-size: 2.5rem;
+  }
+  
+  .steps {
+    padding-left: 0;
+  }
+}
+
+@media (max-width: 576px) {
+  .feature-icon {
+    height: 50px;
+    width: 50px;
+  }
+  
+  .feature-icon i {
+    font-size: 1.5rem;
+  }
+  
+  .display-4 {
+    font-size: 2rem;
+  }
+}
