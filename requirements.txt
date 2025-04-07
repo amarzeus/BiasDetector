@@ -1,6 +1,0 @@
-flask
-flask-cors
-openai
-nltk
-trafilatura
-gunicorn
