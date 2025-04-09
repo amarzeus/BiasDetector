@@ -29,6 +29,7 @@ BiasDetector is a Chrome extension with a Python backend that analyzes news arti
 1. Navigate to the backend directory:
    ```
    cd BiasDetector/backend
+<<<<<<< HEAD
    ```
    
 2. Install required dependencies:
@@ -68,3 +69,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 Copyright (c) 2023-2025 Amar Kumar
 
+=======
+   
+>>>>>>> 7b55693 (Add project files and documentation for the BiasDetector Chrome extension.)

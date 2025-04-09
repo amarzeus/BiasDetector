@@ -151,12 +151,16 @@
 .bias-detector-tabs {
   display: flex;
   border-bottom: 1px solid #dee2e6;
+<<<<<<< HEAD
   position: relative;
   z-index: 10;
+=======
+>>>>>>> 7b55693 (Add project files and documentation for the BiasDetector Chrome extension.)
 }
 
 .bias-detector-tab {
   flex: 1;
+<<<<<<< HEAD
   padding: 12px 10px;
   margin: 0 2px;
   text-align: center;
@@ -186,30 +190,59 @@
   color: #4b6cb7;
   z-index: 7;
   box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.05);
+=======
+  padding: 10px;
+  text-align: center;
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+  font-weight: 500;
+  color: #6c757d;
+}
+
+.bias-detector-tab:hover {
+  background-color: #f8f9fa;
+  color: #4b6cb7;
+}
+
+.bias-detector-tab.active {
+  border-bottom-color: #4b6cb7;
+  color: #4b6cb7;
+>>>>>>> 7b55693 (Add project files and documentation for the BiasDetector Chrome extension.)
 }
 
 .bias-detector-content {
   flex: 1;
   overflow-y: auto;
   padding: 15px;
+<<<<<<< HEAD
   position: relative;
   z-index: 5;
   background-color: #fff;
+=======
+>>>>>>> 7b55693 (Add project files and documentation for the BiasDetector Chrome extension.)
 }
 
 .bias-detector-tab-content {
   display: none;
+<<<<<<< HEAD
   opacity: 0;
   transition: opacity 0.3s ease;
   height: 0;
   overflow: hidden;
+=======
+>>>>>>> 7b55693 (Add project files and documentation for the BiasDetector Chrome extension.)
 }
 
 .bias-detector-tab-content.active {
   display: block;
+<<<<<<< HEAD
   opacity: 1;
   height: auto;
   overflow: visible;
+=======
+>>>>>>> 7b55693 (Add project files and documentation for the BiasDetector Chrome extension.)
 }
 
 .bias-detector-footer {
@@ -401,6 +434,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+<<<<<<< HEAD
   padding: 12px;
   background-color: #f8f9fa;
   border-bottom: 1px solid #dee2e6;
@@ -413,16 +447,29 @@
 .bias-detector-instance-header:hover,
 .bias-detector-context-header:hover {
   background-color: #e9ecef;
+=======
+  padding: 10px;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+>>>>>>> 7b55693 (Add project files and documentation for the BiasDetector Chrome extension.)
 }
 
 .bias-detector-instance-text,
 .bias-detector-context-statement {
+<<<<<<< HEAD
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 65%;
   pointer-events: none;
+=======
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 70%;
+>>>>>>> 7b55693 (Add project files and documentation for the BiasDetector Chrome extension.)
 }
 
 .bias-detector-instance-category,

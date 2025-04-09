@@ -160,10 +160,14 @@ function showBiasDetectorOverlay(data) {
   const tabButtonOriginal = document.createElement('button');
   tabButtonOriginal.classList.add('bias-detector-tab', 'active');
   tabButtonOriginal.textContent = 'Original';
+<<<<<<< HEAD
   tabButtonOriginal.setAttribute('data-tab-id', 'original');
   tabButtonOriginal.addEventListener('click', function(e) {
     e.preventDefault();
     e.stopPropagation();
+=======
+  tabButtonOriginal.addEventListener('click', () => {
+>>>>>>> 7b55693 (Add project files and documentation for the BiasDetector Chrome extension.)
     setActiveTab(tabButtonOriginal);
     showTabContent('original');
   });
@@ -171,10 +175,14 @@ function showBiasDetectorOverlay(data) {
   const tabButtonRewritten = document.createElement('button');
   tabButtonRewritten.classList.add('bias-detector-tab');
   tabButtonRewritten.textContent = 'Rewritten';
+<<<<<<< HEAD
   tabButtonRewritten.setAttribute('data-tab-id', 'rewritten');
   tabButtonRewritten.addEventListener('click', function(e) {
     e.preventDefault();
     e.stopPropagation();
+=======
+  tabButtonRewritten.addEventListener('click', () => {
+>>>>>>> 7b55693 (Add project files and documentation for the BiasDetector Chrome extension.)
     setActiveTab(tabButtonRewritten);
     showTabContent('rewritten');
   });
@@ -182,10 +190,14 @@ function showBiasDetectorOverlay(data) {
   const tabButtonCompare = document.createElement('button');
   tabButtonCompare.classList.add('bias-detector-tab');
   tabButtonCompare.textContent = 'Compare';
+<<<<<<< HEAD
   tabButtonCompare.setAttribute('data-tab-id', 'compare');
   tabButtonCompare.addEventListener('click', function(e) {
     e.preventDefault();
     e.stopPropagation();
+=======
+  tabButtonCompare.addEventListener('click', () => {
+>>>>>>> 7b55693 (Add project files and documentation for the BiasDetector Chrome extension.)
     setActiveTab(tabButtonCompare);
     showTabContent('compare');
   });
@@ -193,10 +205,14 @@ function showBiasDetectorOverlay(data) {
   const tabButtonBias = document.createElement('button');
   tabButtonBias.classList.add('bias-detector-tab');
   tabButtonBias.textContent = 'Bias Analysis';
+<<<<<<< HEAD
   tabButtonBias.setAttribute('data-tab-id', 'bias');
   tabButtonBias.addEventListener('click', function(e) {
     e.preventDefault();
     e.stopPropagation();
+=======
+  tabButtonBias.addEventListener('click', () => {
+>>>>>>> 7b55693 (Add project files and documentation for the BiasDetector Chrome extension.)
     setActiveTab(tabButtonBias);
     showTabContent('bias');
   });
@@ -250,9 +266,12 @@ function showBiasDetectorOverlay(data) {
   // Add the overlay to the page
   document.body.appendChild(biasDetectorOverlay);
   
+<<<<<<< HEAD
   // Ensure all tab buttons are properly clickable
   setupTabEventListeners();
   
+=======
+>>>>>>> 7b55693 (Add project files and documentation for the BiasDetector Chrome extension.)
   // Mark as active
   isOverlayActive = true;
   
@@ -268,6 +287,7 @@ function showBiasDetectorOverlay(data) {
     document.querySelectorAll('.bias-detector-tab-content').forEach(tabContent => {
       tabContent.classList.remove('active');
     });
+<<<<<<< HEAD
     const targetElement = document.getElementById(`bias-detector-tab-${tabId}`);
     if (targetElement) {
       targetElement.classList.add('active');
@@ -343,6 +363,9 @@ function showBiasDetectorOverlay(data) {
     
     // Log the tab setup completion
     console.log("Tab event listeners setup completed");
+=======
+    document.getElementById(`bias-detector-tab-${tabId}`).classList.add('active');
+>>>>>>> 7b55693 (Add project files and documentation for the BiasDetector Chrome extension.)
   }
 }
 

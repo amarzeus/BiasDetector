@@ -387,62 +387,40 @@ def generate_demo_rewrite(text, bias_analysis):
             "Another perspective is that",
             "Proponents argue that",
             "Critics contend that",
-            "Research indicates varied outcomes, with",
-            "Multiple viewpoints exist on this issue:",
-            "Historical precedent shows mixed results from",
-            "According to some analysts,"
+            "Research indicates that",
+            "Some economists believe that",
+            "Alternative viewpoints suggest"
         ]
         
-        import random
-        
-        # Add a balanced perspective at the beginning of some paragraphs
-        if len(paragraph) > 100 and random.random() > 0.6:
-            phrase = random.choice(balanced_phrases)
-            if not new_paragraph.startswith(phrase):
-                words = new_paragraph.split()
-                if len(words) > 5:
-                    # Insert the balanced phrase after the first few words
-                    insertion_point = min(5, len(words) // 3)
-                    words.insert(insertion_point, phrase.lower())
-                    new_paragraph = " ".join(words)
-        
-        # Add counter-perspective to some paragraphs
-        if len(paragraph) > 150 and random.random() > 0.7:
-            counter_perspectives = [
-                " However, alternative viewpoints suggest this may not fully address all considerations.",
-                " It's worth noting that different stakeholders have varied perspectives on this approach.",
-                " Some analysts present contrasting data that suggests a more complex situation.",
-                " This view is contested by those who point to different economic/social/political factors."
-            ]
-            counter = random.choice(counter_perspectives)
-            if not new_paragraph.endswith(counter):
-                new_paragraph += counter
+        # Only add balancing phrases to longer paragraphs
+        if len(new_paragraph) > 100 and len(new_paragraph.split()) > 20:
+            import random
+            
+            # Randomly add a balancing phrase to the beginning 40% of the time
+            if random.random() < 0.4:
+                phrase = random.choice(balanced_phrases)
+                if not new_paragraph.startswith(phrase):
+                    # Make the first letter lowercase if adding to beginning
+                    words = new_paragraph.split()
+                    if len(words) > 0:
+                        words[0] = words[0][0].lower() + words[0][1:] if len(words[0]) > 1 else words[0].lower()
+                        new_paragraph = f"{phrase} {' '.join(words)}"
+                        
+            # Randomly add a contrasting perspective to longer paragraphs
+            elif random.random() < 0.4:
+                # Append a contrasting perspective
+                contrast_phrases = [
+                    "However, others point out that",
+                    "On the other hand, some suggest that",
+                    "Alternative analyses indicate that",
+                    "A different perspective suggests that"
+                ]
                 
-        # Add citations occasionally
-        if random.random() > 0.7:
-            citations = [
-                " (Smith et al., 2023).",
-                " according to independent research.",
-                " as reported by multiple sources.",
-                " based on historical precedent."
-            ]
-            citation = random.choice(citations)
-            if not new_paragraph.endswith(citation):
-                # Add citation near the end
-                sentences = new_paragraph.split('.')
-                if len(sentences) > 1:
-                    last_sentence = sentences[-2]  # Get the second-to-last sentence
-                    sentences[-2] = last_sentence + citation
-                    new_paragraph = '.'.join(sentences)
+                new_paragraph += f" {random.choice(contrast_phrases)} there are multiple viewpoints on this issue that should be considered."
         
         rewritten_paragraphs.append(new_paragraph)
     
-    rewritten_text = '\n\n'.join(rewritten_paragraphs)
-    
-    # Add disclaimer that this is a demo rewrite
-    rewritten_text += "\n\n(Note: This is a simulated balanced rewrite created by the demo system. For actual content analysis, please provide an OpenAI API key.)"
-    
-    return rewritten_text
+    return '\n\n'.join(rewritten_paragraphs)
 
 def detect_missing_context(text, api_key=None):
     """
@@ -456,38 +434,33 @@ def detect_missing_context(text, api_key=None):
         list: List of missing context items
     """
     try:
-        prompt = """You are an expert fact-checker and context analyst. Review the following text and identify any important missing context that would provide a more balanced or complete understanding.
+        prompt = """You are an expert media analyst with deep knowledge across many fields.
         
-        Examples of missing context:
-        1. Historical information that provides perspective
-        2. Relevant statistical context (e.g., what a percentage means in absolute numbers)
-        3. Alternative explanations or perspectives
-        4. Important caveats or limitations
-        5. Source credibility context
+        Analyze the following text and identify important missing context that would be needed to present
+        a more complete and balanced view of the topic.
         
-        For each instance of missing context, provide:
-        - The statement needing context
-        - The missing context that would provide balance
-        - Sources that support this context (if applicable)
+        For each major claim or perspective in the text, identify:
+        1. What crucial context is missing?
+        2. What alternative viewpoints are not represented?
+        3. What factual information would help readers evaluate the claims?
+        4. What historical or background information would provide better understanding?
         
-        Return your analysis in JSON format with the following structure:
-        {
-            "missing_context_items": [
-                {
-                    "statement": "the statement needing context",
-                    "context": "the missing context",
-                    "sources": ["source 1", "source 2"],
-                    "importance": 1-10 rating of importance
-                }
-            ]
-        }
+        Return your analysis in JSON format with this structure:
+        [
+            {
+                "statement": "The statement or claim from the text",
+                "context": "The missing context or alternative perspective",
+                "sources": ["Possible source types for this information"],
+                "importance": 1-10 rating of how important this context is
+            }
+        ]
         
         Text to analyze:
         ---
         """ + text + """
         ---
         
-        Provide your detailed analysis in JSON format only.
+        Provide a thoughtful analysis in JSON format only.
         """
         
         # Use the provided API key if available
@@ -497,7 +470,7 @@ def detect_missing_context(text, api_key=None):
             
         # Check if we have a valid OpenAI client
         if client is None:
-            # Return sample missing context when no API key is available
+            # Return a demo missing context when no API key is available
             logging.warning("No OpenAI API key available - returning demo missing context")
             return generate_demo_missing_context(text)
         
@@ -505,12 +478,19 @@ def detect_missing_context(text, api_key=None):
             model=MODEL,
             messages=[{"role": "user", "content": prompt}],
             response_format={"type": "json_object"},
-            temperature=0.2
+            temperature=0.3
         )
         
-        # Parse the response
-        missing_context = json.loads(response.choices[0].message.content)
-        return missing_context.get("missing_context_items", [])
+        # Parse the response - might be a list or might be a dict with a list
+        result = json.loads(response.choices[0].message.content)
+        
+        # Handle both possible formats
+        if isinstance(result, list):
+            return result
+        elif isinstance(result, dict) and "missing_context" in result:
+            return result["missing_context"]
+        else:
+            return result
         
     except Exception as e:
         error_msg = str(e)
@@ -528,9 +508,8 @@ def detect_missing_context(text, api_key=None):
         else:
             logging.warning(f"Unknown OpenAI API error: {error_msg}. Using demo missing context.")
         
-        # For API errors, generate simulated missing context
+        # Fall back to demo missing context
         return generate_demo_missing_context(text)
-
 
 def generate_demo_missing_context(text):
     """
@@ -544,75 +523,65 @@ def generate_demo_missing_context(text):
     """
     logging.info("Generating simulated missing context for demo purposes")
     
-    # Extract phrases from the text to use as "statements needing context"
-    words = text.split()
-    statements = []
-    
-    if len(words) > 30:
-        # Extract some statements from the text
-        start_indices = [10, int(len(words)/4), int(len(words)/2), int(3*len(words)/4)]
-        for start in start_indices:
-            if start + 10 <= len(words):
-                statements.append(" ".join(words[start:start+10]))
-    
-    # If we couldn't extract enough statements, use some generic ones
-    generic_statements = [
-        "The key claim made in the article",
-        "An important statistic mentioned in the text",
-        "A central argument presented by the author",
-        "The historical context referred to in the article"
+    # Base context categories based on common missing perspectives
+    context_categories = [
+        {
+            "category": "historical",
+            "context_template": "Historical context about how similar situations have played out in the past would provide valuable perspective.",
+            "sources": ["Historical records", "Academic research", "News archives"]
+        },
+        {
+            "category": "economic",
+            "context_template": "Economic data showing the broader impacts and trade-offs would offer a more complete understanding.",
+            "sources": ["Economic studies", "Financial reports", "Government statistics"]
+        },
+        {
+            "category": "opposing",
+            "context_template": "The perspective of those with opposing viewpoints would present a more balanced picture.",
+            "sources": ["Opposition statements", "Alternative media sources", "Expert critiques"]
+        },
+        {
+            "category": "scientific",
+            "context_template": "Scientific research on this topic offers more nuanced findings than presented in the text.",
+            "sources": ["Peer-reviewed studies", "Scientific consensus", "Research reports"]
+        },
+        {
+            "category": "international",
+            "context_template": "International perspectives and examples from other countries provide comparative context.",
+            "sources": ["International news", "Comparative studies", "Global organizations"]
+        }
     ]
     
-    while len(statements) < 3:
-        if len(generic_statements) > 0:
-            statements.append(generic_statements.pop(0))
-        else:
-            break
+    # Extract phrases from text to use as statements
+    sentences = [s.strip() for s in text.split('.') if len(s.strip()) > 30]
+    if len(sentences) < 3:
+        sentences = [text[:80], text[80:160], text[160:240]]
     
-    # Limit to 3 statements maximum
-    statements = statements[:3]
-    
-    # Create context items based on common missing context types
-    missing_context_items = []
-    
-    # For demo purposes, use these categories of missing context
-    context_types = [
-        "historical context",
-        "statistical context",
-        "alternative viewpoint",
-        "conflicting data",
-        "expert consensus"
-    ]
-    
+    # Generate 2-4 missing context items
     import random
+    num_items = min(len(sentences), random.randint(2, 4))
+    selected_sentences = random.sample(sentences, num_items)
     
-    for i, statement in enumerate(statements):
-        # Get a context type
-        context_type = context_types[i % len(context_types)]
+    missing_context = []
+    used_categories = []
+    
+    for sentence in selected_sentences:
+        # Select a category that hasn't been used yet if possible
+        available_categories = [c for c in context_categories if c["category"] not in used_categories]
+        if not available_categories:
+            available_categories = context_categories
+            
+        category = random.choice(available_categories)
+        used_categories.append(category["category"])
         
-        # Generate appropriate context based on the type
-        if context_type == "historical context":
-            context = "Historical data provides additional perspective that would balance this claim. Previous similar situations have had varied outcomes."
-            sources = ["Historical records", "Academic research"]
-        elif context_type == "statistical context":
-            context = "The statistics presented don't include important contextual information about sample size, methodology, or comparison to historical averages."
-            sources = ["Government data", "Independent studies"]
-        elif context_type == "alternative viewpoint":
-            context = "There are alternative interpretations from experts in the field that offer a different perspective on this issue."
-            sources = ["Expert interviews", "Academic journals"]
-        elif context_type == "conflicting data":
-            context = "Some recent studies have presented data that conflicts with this assertion, suggesting a more complex reality."
-            sources = ["Scientific studies", "Industry reports"]
-        else:  # expert consensus
-            context = "The current expert consensus in this field presents a more nuanced view that should be considered alongside this statement."
-            sources = ["Academic consensus", "Field experts"]
-        
-        # Add the missing context item
-        missing_context_items.append({
-            "statement": statement,
-            "context": context,
-            "sources": sources,
+        # Generate a missing context item
+        item = {
+            "statement": sentence[:100] + "..." if len(sentence) > 100 else sentence,
+            "context": category["context_template"],
+            "sources": category["sources"],
             "importance": random.randint(6, 9)
-        })
+        }
+        
+        missing_context.append(item)
     
-    return missing_context_items
+    return missing_context

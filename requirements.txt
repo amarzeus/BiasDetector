@@ -4,3 +4,4 @@ openai
 nltk
 trafilatura
 gunicorn
+markdown

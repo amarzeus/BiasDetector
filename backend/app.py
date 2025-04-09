@@ -294,596 +294,436 @@ def generate_article():
         
         # Healthcare bias
         "healthcare": """
-        The heartless opponents of universal healthcare have once again blocked vital reforms that would save countless lives, proving they value corporate profits over human suffering. This cruel obstruction, orchestrated by pharmaceutical and insurance lobbyists, condemns millions of Americans to bankruptcy and preventable deaths. Every reputable medical organization has endorsed a universal system as the only humane solution.
+        The heartless opponents of universal healthcare have once again blocked vital reforms that would save countless lives, proving they value corporate profits over human suffering. This cruel obstruction, orchestrated by pharmaceutical and insurance lobbyists, condemns millions of Americans to bankruptcy and preventable deaths. Every reputable medical organization supports these necessary changes.
 
-        The complete dismissal of medical expertise in this debate exposes the moral failure of those who oppose reform. It's nothing but a desperate attempt to preserve an exploitative system that generates massive profits for shareholders. The defenders of the status quo callously ignore the overwhelming evidence that our current healthcare model is both inefficient and deadly.
+        The callous disregard for public health in this debate exposes the moral bankruptcy of those who defend our broken system. It's nothing but a cynical attempt to preserve the obscene profits of healthcare corporations at the expense of ordinary citizens. The reform opponents deliberately ignore overwhelming evidence from dozens of countries with successful universal healthcare models.
 
-        Healthcare advocates heroically continue fighting for the right to healthcare despite massive industry opposition. They understand what patients truly need, unlike the politicians who receive millions in campaign contributions from the very companies profiting from human suffering.
+        Progressive advocates continue their heroic fight despite being massively outspent by industry propaganda. They represent the true will of the people, unlike the corrupt politicians who serve only their donors while betraying their constituents' healthcare needs.
 
-        We cannot allow this injustice to continue. The undeniable truth is that every other developed nation provides universal healthcare to its citizens at a fraction of our costs. This obstruction of progress is nothing short of a human rights violation.
+        We cannot surrender to this sinister alliance between profiteers and politicians. The undeniable reality is that universal healthcare is not only morally necessary but economically superior to our wasteful private system. This obstruction of reform is costing American lives every single day.
         """
     }
     
-    # Get the article type from request parameters
-    article_type = request.args.get('type', 'random')
-    
-    # If random or invalid type, pick a random article
-    import random
-    if article_type == 'random' or article_type not in article_templates:
-        article_type = random.choice(list(article_templates.keys()))
-    
-    selected_article = article_templates[article_type]
+    # Select a template based on bias type parameter or default to left
+    bias_type = request.args.get('bias_type', 'left')
+    article = article_templates.get(bias_type, article_templates['left'])
     
     return jsonify({
-        "article": selected_article.strip(),
-        "type": article_type
+        "content": article.strip(),
+        "bias_type": bias_type
     })
 
 @app.route('/demo', methods=['GET'])
 def demo():
-    """Interactive demo page for BiasDetector"""
-    
-    # Sample biased article text
-    sample_article = """
-    The radical left-wing Democrats have once again pushed their extreme agenda on hardworking Americans with their latest legislative disaster. This bill, crafted by out-of-touch coastal elites, will surely destroy jobs and wreck our economy. Experts who have actually studied economics, unlike these politicians, agree that these policies always fail.
-
-    The reckless spending in this legislation will bankrupt our nation while doing nothing to help ordinary citizens. It's simply a power grab designed to control more aspects of Americans' lives through big government programs. The bill's supporters ignore the catastrophic consequences we've seen time and again from similar socialist experiments in other countries.
-
-    Conservative lawmakers courageously fought against this terrible bill, standing up for freedom and fiscal responsibility. They understand what everyday Americans truly need, unlike the liberal politicians who only listen to special interest groups and their radical base.
-
-    We must reject this destructive ideology before it's too late. Real Americans know that the free market, not government intervention, is the path to prosperity. This bill is nothing short of an attack on our values and way of life.
-    """
-    
-    # Return the demo page with the sample article
+    """Interactive demo page for the BiasDetector API"""
     return """
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>BiasDetector Demo</title>
-        <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
-        <style>
-            body {
-                font-family: Arial, sans-serif;
-                line-height: 1.6;
-                padding: 20px;
-                max-width: 1200px;
-                margin: 0 auto;
-                background-color: #f5f5f5;
-                color: #333;
-            }
-            .card {
-                background-color: white;
-                border-radius: 8px;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                padding: 20px;
-                margin-bottom: 20px;
-            }
-            .btn-primary {
-                background-color: #3498db;
-                border-color: #3498db;
-            }
-            .btn-primary:hover {
-                background-color: #2980b9;
-                border-color: #2980b9;
-            }
-            .navbar {
-                background-color: #2c3e50;
-                margin-bottom: 20px;
-            }
-            .navbar-brand {
-                font-weight: bold;
-                color: white !important;
-            }
-            .bias-score {
-                font-size: 2rem;
-                font-weight: bold;
-                padding: 10px 15px;
-                border-radius: 50%;
-                width: 60px;
-                height: 60px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                margin: 0 auto 15px;
-                color: white;
-            }
-            .bg-low { background-color: #27ae60; }
-            .bg-medium { background-color: #f39c12; }
-            .bg-high { background-color: #e74c3c; }
-            .loading {
-                display: none;
-                text-align: center;
-                padding: 20px;
-            }
-            .tab-content {
-                padding: 15px 0;
-            }
-            .result-section {
-                display: none;
-            }
-            .diff-removed {
-                background-color: rgba(231, 76, 60, 0.2);
-                text-decoration: line-through;
-                padding: 2px 0;
-            }
-            .diff-added {
-                background-color: rgba(39, 174, 96, 0.2);
-                padding: 2px 0;
-            }
-            #apiKeySection {
-                margin-bottom: 20px;
-            }
-            .bias-instance {
-                border-left: 4px solid #f39c12;
-                padding: 10px 15px;
-                margin-bottom: 10px;
-                background-color: rgba(243, 156, 18, 0.1);
-            }
-            .instance-text {
-                font-weight: bold;
-            }
-            .instance-severity {
-                float: right;
-                padding: 2px 8px;
-                border-radius: 12px;
-                font-size: 0.8rem;
-                color: white;
-            }
-            .severity-low { background-color: #27ae60; }
-            .severity-medium { background-color: #f39c12; }
-            .severity-high { background-color: #e74c3c; }
-            .context-item {
-                border-left: 4px solid #3498db;
-                padding: 10px 15px;
-                margin-bottom: 10px;
-                background-color: rgba(52, 152, 219, 0.1);
-            }
-            .toggle-view-btn {
-                cursor: pointer;
-                color: #3498db;
-            }
-            .accordion-body {
-                border-top: 1px solid rgba(0,0,0,0.1);
-                padding-top: 10px;
-            }
-            /* Override bootstrap dark theme for demo */
-            [data-bs-theme=dark] {
-                --bs-body-color: #333;
-                --bs-body-bg: #f5f5f5;
-            }
-            .navbar-dark {
-                background-color: #2c3e50 !important;
-            }
-            .card {
-                --bs-card-bg: white;
-                --bs-card-color: #333;
-            }
-            h1, h2, h3, h4, h5, h6, p {
-                color: #333 !important;
-            }
-            .text-muted {
-                color: #777 !important;
-            }
-            .nav-tabs .nav-link {
-                color: #555 !important;
-            }
-            .nav-tabs .nav-link.active {
-                color: #3498db !important;
-                font-weight: bold;
-            }
-        </style>
-    </head>
-    <body>
-        <nav class="navbar navbar-expand-lg navbar-dark">
-            <div class="container-fluid">
-                <a class="navbar-brand" href="/">
-                    <i class="bi bi-exclamation-circle me-2"></i>
-                    BiasDetector
-                </a>
-                <span class="navbar-text">
-                    v1.0.0
-                </span>
-            </div>
-        </nav>
-
-        <div class="container">
+    <html>
+        <head>
+            <title>BiasDetector Demo</title>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    max-width: 1000px;
+                    margin: 0 auto;
+                    padding: 20px;
+                    line-height: 1.6;
+                    color: #333;
+                    background-color: #f5f5f5;
+                }
+                h1, h2, h3 {
+                    color: #2c3e50;
+                }
+                .card {
+                    background-color: white;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                    padding: 20px;
+                    margin-bottom: 20px;
+                }
+                .tabs {
+                    display: flex;
+                    margin-bottom: 15px;
+                    border-bottom: 1px solid #ddd;
+                }
+                .tab {
+                    padding: 10px 15px;
+                    cursor: pointer;
+                    margin-right: 5px;
+                    border-radius: 4px 4px 0 0;
+                }
+                .tab.active {
+                    background-color: #3498db;
+                    color: white;
+                    font-weight: bold;
+                }
+                .tab-content {
+                    display: none;
+                }
+                .tab-content.active {
+                    display: block;
+                }
+                .btn {
+                    display: inline-block;
+                    background-color: #3498db;
+                    color: white;
+                    padding: 10px 15px;
+                    border-radius: 4px;
+                    text-decoration: none;
+                    font-weight: bold;
+                    border: none;
+                    cursor: pointer;
+                }
+                .btn:hover {
+                    background-color: #2980b9;
+                }
+                .form-group {
+                    margin-bottom: 15px;
+                }
+                label {
+                    display: block;
+                    margin-bottom: 5px;
+                    font-weight: bold;
+                }
+                select, textarea {
+                    width: 100%;
+                    padding: 8px;
+                    border: 1px solid #ddd;
+                    border-radius: 4px;
+                    box-sizing: border-box;
+                }
+                textarea {
+                    min-height: 200px;
+                }
+                .loader {
+                    border: 5px solid #f3f3f3;
+                    border-top: 5px solid #3498db;
+                    border-radius: 50%;
+                    width: 30px;
+                    height: 30px;
+                    animation: spin 1s linear infinite;
+                    margin: 20px auto;
+                    display: none;
+                }
+                @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+                .bias-meter {
+                    width: 100%;
+                    height: 30px;
+                    background-color: #eee;
+                    border-radius: 15px;
+                    overflow: hidden;
+                    position: relative;
+                    margin: 10px 0;
+                }
+                .bias-fill {
+                    height: 100%;
+                    background: linear-gradient(to right, #27ae60, #f39c12, #e74c3c);
+                    width: 0%;
+                    transition: width 1s;
+                }
+                .bias-marker {
+                    position: absolute;
+                    top: 0;
+                    height: 100%;
+                    width: 3px;
+                    background-color: black;
+                }
+                .bias-label {
+                    display: flex;
+                    justify-content: space-between;
+                    margin-top: 5px;
+                }
+                .bias-instance {
+                    padding: 10px;
+                    margin: 5px 0;
+                    background-color: #f8f9fa;
+                    border-left: 4px solid #e74c3c;
+                    border-radius: 3px;
+                }
+                .severity-high {
+                    border-color: #e74c3c;
+                }
+                .severity-medium {
+                    border-color: #f39c12;
+                }
+                .severity-low {
+                    border-color: #27ae60;
+                }
+                .diff-view {
+                    background-color: #f8f9fa;
+                    padding: 15px;
+                    border-radius: 3px;
+                    white-space: pre-wrap;
+                    font-family: monospace;
+                }
+                .diff-add {
+                    background-color: #d4edda;
+                    color: #155724;
+                }
+                .diff-remove {
+                    background-color: #f8d7da;
+                    color: #721c24;
+                    text-decoration: line-through;
+                }
+                .analysis-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }
+                .analysis-score {
+                    font-size: 2em;
+                    font-weight: bold;
+                    color: #e74c3c;
+                }
+            </style>
+        </head>
+        <body>
             <div class="card">
-                <h2>BiasDetector Demo</h2>
-                <p>This demo shows how the BiasDetector analyzes and rewrites biased news articles. You can provide your OpenAI API key for full functionality or use the demo mode.</p>
-                
-                <div id="apiKeySection">
-                    <div class="form-group mb-3">
-                        <label for="apiKey">OpenAI API Key (Optional)</label>
-                        <div class="input-group">
-                            <input type="password" class="form-control" id="apiKey" placeholder="sk-...">
-                            <button class="btn btn-outline-secondary" type="button" id="toggleApiKey">
-                                <i class="bi bi-eye"></i>
-                            </button>
-                        </div>
-                        <small class="form-text text-muted">Your API key stays in your browser and is sent directly to OpenAI</small>
-                    </div>
-                </div>
-                
-                <div class="form-group mb-3">
-                    <label for="articleType">Article Type</label>
-                    <select class="form-select" id="articleType">
-                        <option value="random">Random</option>
-                        <option value="left">Left-Leaning Political</option>
-                        <option value="right">Right-Leaning Political</option>
-                        <option value="environmental">Environmental</option>
-                        <option value="technology">Technology</option>
-                        <option value="healthcare">Healthcare</option>
+                <h1>BiasDetector Interactive Demo</h1>
+                <p>Try out the BiasDetector API with a sample biased article or enter your own text for analysis.</p>
+            </div>
+            
+            <div class="card">
+                <h2>Select Article Type</h2>
+                <div class="form-group">
+                    <label for="bias-type">Bias Type:</label>
+                    <select id="bias-type">
+                        <option value="left">Left-Leaning Political Bias</option>
+                        <option value="right">Right-Leaning Political Bias</option>
+                        <option value="environmental">Environmental Bias</option>
+                        <option value="technology">Technology Bias</option>
+                        <option value="healthcare">Healthcare Bias</option>
                     </select>
-                    <small class="form-text text-muted">Select the type of biased article you want to generate</small>
                 </div>
-                
-                <div class="form-group mb-3">
-                    <label for="articleText">Article Text</label>
-                    <textarea class="form-control" id="articleText" rows="10">""" + sample_article.strip() + """</textarea>
-                </div>
-                
-                <div class="d-flex gap-2">
-                    <button id="generateBtn" class="btn btn-secondary">
-                        <i class="bi bi-arrow-repeat me-1"></i> Generate New Article
-                    </button>
-                    <button id="analyzeBtn" class="btn btn-primary">
-                        <i class="bi bi-search me-1"></i> Analyze Article
-                    </button>
-                </div>
+                <button id="load-article" class="btn">Load Sample Article</button>
+                <span> or </span>
+                <button id="clear-article" class="btn">Enter Your Own</button>
             </div>
             
-            <div id="loadingSection" class="loading card">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
+            <div class="card">
+                <h2>Article Text</h2>
+                <div class="form-group">
+                    <textarea id="article-text" placeholder="Enter or paste article text here..."></textarea>
                 </div>
-                <p class="mt-3">Analyzing article for bias...</p>
+                <button id="analyze-btn" class="btn">Analyze & Rewrite</button>
+                <div id="loader" class="loader"></div>
             </div>
             
-            <div id="resultSection" class="result-section">
-                <div class="card mb-3">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h3 class="mb-0">Analysis Results</h3>
-                        <div id="biasScoreBadge" class="bias-score bg-medium">75</div>
+            <div id="results" style="display: none;">
+                <div class="card">
+                    <div class="tabs">
+                        <div class="tab active" data-tab="analysis">Bias Analysis</div>
+                        <div class="tab" data-tab="rewritten">Rewritten</div>
+                        <div class="tab" data-tab="comparison">Comparison</div>
                     </div>
                     
-                    <p id="biasAssessment" class="text-center">This article shows significant bias. It presents a one-sided viewpoint with emotional language and missing context.</p>
-                    
-                    <ul class="nav nav-tabs" id="resultTabs" role="tablist" style="border-bottom: 2px solid #dee2e6;">
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link active" id="analysis-tab" data-bs-toggle="tab" data-bs-target="#analysis" type="button" role="tab" style="color: #333; font-weight: bold; border: 1px solid #dee2e6; border-bottom: none; padding: 10px 15px;">Analysis</button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="rewritten-tab" data-bs-toggle="tab" data-bs-target="#rewritten" type="button" role="tab" style="color: #333; border: 1px solid #dee2e6; border-bottom: none; padding: 10px 15px;">Rewritten</button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="compare-tab" data-bs-toggle="tab" data-bs-target="#compare" type="button" role="tab" style="color: #333; border: 1px solid #dee2e6; border-bottom: none; padding: 10px 15px;">Compare</button>
-                        </li>
-                    </ul>
-                    
-                    <div class="tab-content" id="resultTabsContent">
-                        <!-- Analysis Tab -->
-                        <div class="tab-pane fade show active" id="analysis" role="tabpanel">
-                            <div class="mb-4">
-                                <h4 style="color: #333; margin-bottom: 15px; font-weight: bold;">Bias Categories</h4>
-                                <div id="biasCategories" class="row"></div>
-                            </div>
-                            
-                            <div class="mb-4">
-                                <h4 style="color: #333; margin-bottom: 15px; font-weight: bold;">Bias Instances</h4>
-                                <div id="biasInstances"></div>
-                            </div>
-                            
-                            <div>
-                                <h4 style="color: #333; margin-bottom: 15px; font-weight: bold;">Missing Context</h4>
-                                <div id="missingContext"></div>
-                            </div>
+                    <div id="analysis-tab" class="tab-content active">
+                        <div class="analysis-header">
+                            <h2>Bias Analysis</h2>
+                            <div class="analysis-score" id="bias-score">0</div>
                         </div>
                         
-                        <!-- Rewritten Tab -->
-                        <div class="tab-pane fade" id="rewritten" role="tabpanel">
-                            <h4 style="color: #333; margin-bottom: 15px; font-weight: bold;">Balanced Article</h4>
-                            <p class="text-muted">The article has been rewritten to present a more balanced viewpoint.</p>
-                            <div id="rewrittenContent" class="mt-3"></div>
+                        <h3>Overall Bias Level</h3>
+                        <div class="bias-meter">
+                            <div class="bias-fill" id="bias-meter-fill"></div>
+                        </div>
+                        <div class="bias-label">
+                            <span>Neutral</span>
+                            <span>Moderate</span>
+                            <span>Strong</span>
                         </div>
                         
-                        <!-- Compare Tab -->
-                        <div class="tab-pane fade" id="compare" role="tabpanel">
-                            <h4 style="color: #333; margin-bottom: 15px; font-weight: bold;">Side-by-Side Comparison</h4>
-                            <p class="text-muted">See the differences between the original and rewritten article.</p>
-                            
-                            <div class="row mt-3">
-                                <div class="col-md-6">
-                                    <h5 style="color: #333; font-weight: bold; margin-bottom: 15px;">Original</h5>
-                                    <div id="originalContent"></div>
-                                </div>
-                                <div class="col-md-6">
-                                    <h5 style="color: #333; font-weight: bold; margin-bottom: 15px;">Rewritten</h5>
-                                    <div id="compareRewrittenContent"></div>
-                                </div>
-                            </div>
-                            
-                            <hr>
-                            
-                            <h4 style="color: #333; margin-bottom: 15px; font-weight: bold;" class="mt-4">Inline Differences</h4>
-                            <p class="text-muted">
-                                <span class="diff-removed">Removed text</span>
-                                <span class="diff-added">Added text</span>
-                            </p>
-                            <div id="diffContent" class="mt-3"></div>
-                        </div>
+                        <h3>Bias Categories</h3>
+                        <div id="bias-categories"></div>
+                        
+                        <h3>Bias Instances</h3>
+                        <div id="bias-instances"></div>
+                    </div>
+                    
+                    <div id="rewritten-tab" class="tab-content">
+                        <h2>Balanced Version</h2>
+                        <p>This is a rewritten version of the article with reduced bias:</p>
+                        <div id="rewritten-content"></div>
+                    </div>
+                    
+                    <div id="comparison-tab" class="tab-content">
+                        <h2>Side-by-Side Comparison</h2>
+                        <p>Changes shown with additions in green and removals in red:</p>
+                        <div id="comparison-content" class="diff-view"></div>
                     </div>
                 </div>
             </div>
-        </div>
-
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-        <script>
-            document.addEventListener('DOMContentLoaded', () => {
-                const apiKeyInput = document.getElementById('apiKey');
-                const toggleApiKeyBtn = document.getElementById('toggleApiKey');
-                const articleTextInput = document.getElementById('articleText');
-                const generateBtn = document.getElementById('generateBtn');
-                const analyzeBtn = document.getElementById('analyzeBtn');
-                const loadingSection = document.getElementById('loadingSection');
-                const resultSection = document.getElementById('resultSection');
-                
-                // Toggle API key visibility
-                toggleApiKeyBtn.addEventListener('click', () => {
-                    if (apiKeyInput.type === 'password') {
-                        apiKeyInput.type = 'text';
-                        toggleApiKeyBtn.innerHTML = '<i class="bi bi-eye-slash"></i>';
-                    } else {
-                        apiKeyInput.type = 'password';
-                        toggleApiKeyBtn.innerHTML = '<i class="bi bi-eye"></i>';
-                    }
-                });
-                
-                // Generate new article button click
-                generateBtn.addEventListener('click', () => {
-                    // Show a loading spinner inside the button
-                    const originalBtnHtml = generateBtn.innerHTML;
-                    generateBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Generating...';
-                    generateBtn.disabled = true;
+            
+            <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    // Elements
+                    const biasTypeSelect = document.getElementById('bias-type');
+                    const loadArticleBtn = document.getElementById('load-article');
+                    const clearArticleBtn = document.getElementById('clear-article');
+                    const articleTextArea = document.getElementById('article-text');
+                    const analyzeBtn = document.getElementById('analyze-btn');
+                    const loader = document.getElementById('loader');
+                    const resultsDiv = document.getElementById('results');
+                    const tabs = document.querySelectorAll('.tab');
+                    const tabContents = document.querySelectorAll('.tab-content');
+                    const biasScore = document.getElementById('bias-score');
+                    const biasMeterFill = document.getElementById('bias-meter-fill');
+                    const biasCategories = document.getElementById('bias-categories');
+                    const biasInstances = document.getElementById('bias-instances');
+                    const rewrittenContent = document.getElementById('rewritten-content');
+                    const comparisonContent = document.getElementById('comparison-content');
                     
-                    // Get the selected article type
-                    const articleType = document.getElementById('articleType').value;
+                    // Load sample article
+                    loadArticleBtn.addEventListener('click', function() {
+                        const biasType = biasTypeSelect.value;
+                        loader.style.display = 'block';
+                        
+                        fetch(`/generate_article?bias_type=${biasType}`)
+                            .then(response => response.json())
+                            .then(data => {
+                                articleTextArea.value = data.content;
+                                loader.style.display = 'none';
+                            })
+                            .catch(error => {
+                                console.error('Error loading article:', error);
+                                loader.style.display = 'none';
+                                alert('Error loading sample article. Please try again.');
+                            });
+                    });
                     
-                    // Fetch a new article with the selected type
-                    fetch(`/generate_article?type=${articleType}`)
+                    // Clear article
+                    clearArticleBtn.addEventListener('click', function() {
+                        articleTextArea.value = '';
+                        articleTextArea.focus();
+                    });
+                    
+                    // Analyze article
+                    analyzeBtn.addEventListener('click', function() {
+                        const articleText = articleTextArea.value.trim();
+                        
+                        if (!articleText) {
+                            alert('Please enter or load an article first.');
+                            return;
+                        }
+                        
+                        loader.style.display = 'block';
+                        resultsDiv.style.display = 'none';
+                        
+                        fetch('/analyze_and_rewrite', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                content: articleText,
+                                url: window.location.href
+                            })
+                        })
                         .then(response => response.json())
                         .then(data => {
                             if (data.error) {
                                 throw new Error(data.error);
                             }
-                            // Put the new article in the textarea
-                            articleTextInput.value = data.article;
-                            // Reset the button
-                            generateBtn.innerHTML = originalBtnHtml;
-                            generateBtn.disabled = false;
-                            // Hide the results section if it's visible
-                            resultSection.style.display = 'none';
-                            // Update the article type dropdown to match the generated article
-                            document.getElementById('articleType').value = data.type;
+                            
+                            displayResults(data);
+                            loader.style.display = 'none';
+                            resultsDiv.style.display = 'block';
                         })
                         .catch(error => {
-                            alert(`Error generating article: ${error.message}`);
-                            generateBtn.innerHTML = originalBtnHtml;
-                            generateBtn.disabled = false;
+                            console.error('Error analyzing article:', error);
+                            loader.style.display = 'none';
+                            alert('Error analyzing article: ' + error.message);
                         });
-                });
-                
-                // Analyze article button click
-                analyzeBtn.addEventListener('click', () => {
-                    const articleText = articleTextInput.value.trim();
-                    if (!articleText) {
-                        alert('Please enter article text to analyze');
-                        return;
-                    }
+                    });
                     
-                    // Show loading section
-                    loadingSection.style.display = 'block';
-                    resultSection.style.display = 'none';
+                    // Tab switching
+                    tabs.forEach(tab => {
+                        tab.addEventListener('click', () => {
+                            const tabId = tab.getAttribute('data-tab');
+                            
+                            // Update active tab
+                            tabs.forEach(t => t.classList.remove('active'));
+                            tab.classList.add('active');
+                            
+                            // Show active content
+                            tabContents.forEach(content => {
+                                content.classList.remove('active');
+                            });
+                            document.getElementById(tabId + '-tab').classList.add('active');
+                        });
+                    });
                     
-                    // Prepare the request
-                    const apiKey = apiKeyInput.value.trim();
-                    const headers = {
-                        'Content-Type': 'application/json'
-                    };
-                    
-                    if (apiKey) {
-                        headers['X-OpenAI-Key'] = apiKey;
-                    }
-                    
-                    // Send the analysis request
-                    fetch('/analyze_and_rewrite', {
-                        method: 'POST',
-                        headers: headers,
-                        body: JSON.stringify({
-                            content: articleText,
-                            url: window.location.href
-                        })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.error) {
-                            throw new Error(data.error);
+                    // Display analysis results
+                    function displayResults(data) {
+                        const analysis = data.bias_analysis;
+                        
+                        // Display bias score
+                        const score = analysis.bias_score;
+                        biasScore.textContent = score;
+                        biasMeterFill.style.width = `${score}%`;
+                        
+                        // Display bias categories
+                        biasCategories.innerHTML = '';
+                        for (const [category, value] of Object.entries(analysis.bias_categories)) {
+                            const percent = Math.round(value * 100);
+                            biasCategories.innerHTML += `
+                                <div>
+                                    <strong>${formatCategoryName(category)}:</strong> ${percent}%
+                                    <div class="bias-meter">
+                                        <div class="bias-fill" style="width: ${percent}%"></div>
+                                    </div>
+                                </div>
+                            `;
                         }
                         
-                        // Hide loading and show results
-                        loadingSection.style.display = 'none';
-                        resultSection.style.display = 'block';
-                        
-                        // Display the results
-                        displayAnalysisResults(data);
-                    })
-                    .catch(error => {
-                        loadingSection.style.display = 'none';
-                        alert(`Error: ${error.message}`);
-                    });
-                });
-                
-                // Display analysis results
-                function displayAnalysisResults(data) {
-                    const biasAnalysis = data.bias_analysis;
-                    const score = Math.round(biasAnalysis.bias_score);
-                    
-                    // Update bias score and assessment
-                    document.getElementById('biasScoreBadge').textContent = score;
-                    
-                    // Set bias score color
-                    let biasScoreClass = 'bg-low';
-                    if (score > 30 && score <= 70) {
-                        biasScoreClass = 'bg-medium';
-                    } else if (score > 70) {
-                        biasScoreClass = 'bg-high';
-                    }
-                    document.getElementById('biasScoreBadge').className = `bias-score ${biasScoreClass}`;
-                    
-                    // Set bias assessment text
-                    document.getElementById('biasAssessment').textContent = getBiasAssessment(score);
-                    
-                    // Display bias categories
-                    const categories = biasAnalysis.bias_categories;
-                    if (categories) {
-                        let categoriesHtml = '';
-                        
-                        const categoryLabels = {
-                            political: 'Political',
-                            emotional: 'Emotional',
-                            framing: 'Framing',
-                            source: 'Source',
-                            factual: 'Factual',
-                            omission: 'Omission'
-                        };
-                        
-                        for (const [category, count] of Object.entries(categories)) {
-                            if (count > 0) {
-                                const label = categoryLabels[category] || category;
-                                categoriesHtml += `
-                                    <div class="col-md-4 col-sm-6 mb-3">
-                                        <div class="d-flex justify-content-between">
-                                            <span style="color: #333; font-weight: bold;">${label}</span>
-                                            <span class="badge bg-primary">${count}</span>
-                                        </div>
-                                        <div class="progress" style="height: 8px; margin-top: 5px; background-color: #e9ecef;">
-                                            <div class="progress-bar bg-primary" role="progressbar" style="width: ${Math.min(count * 10, 100)}%;" aria-valuenow="${count}" aria-valuemin="0" aria-valuemax="10"></div>
-                                        </div>
+                        // Display bias instances
+                        biasInstances.innerHTML = '';
+                        if (analysis.bias_instances.length === 0) {
+                            biasInstances.innerHTML = '<p>No specific bias instances detected.</p>';
+                        } else {
+                            analysis.bias_instances.forEach(instance => {
+                                const severityClass = getSeverityClass(instance.severity);
+                                biasInstances.innerHTML += `
+                                    <div class="bias-instance ${severityClass}">
+                                        <strong>${formatCategoryName(instance.category)}:</strong>
+                                        <p>"${instance.text}"</p>
+                                        <small>Severity: ${Math.round(instance.severity * 100)}%</small>
                                     </div>
                                 `;
-                            }
+                            });
                         }
                         
-                        document.getElementById('biasCategories').innerHTML = categoriesHtml;
-                    } else {
-                        document.getElementById('biasCategories').innerHTML = '<p class="text-center text-muted">No categories data available</p>';
-                    }
-                    
-                    // Display bias instances
-                    const instances = biasAnalysis.bias_instances;
-                    if (instances && instances.length > 0) {
-                        let instancesHtml = '';
+                        // Display rewritten content
+                        rewrittenContent.innerHTML = `<p>${data.rewritten.replace(/\\n/g, '<br>')}</p>`;
                         
-                        instances.forEach((instance, index) => {
-                            const severityClass = instance.severity <= 3 ? 'severity-low' : instance.severity <= 7 ? 'severity-medium' : 'severity-high';
+                        // Display comparison
+                        comparisonContent.innerHTML = '';
+                        data.comparison.diff.forEach(part => {
+                            let className = '';
+                            if (part.added) className = 'diff-add';
+                            if (part.removed) className = 'diff-remove';
                             
-                            instancesHtml += `
-                                <div class="bias-instance">
-                                    <div class="d-flex justify-content-between mb-2">
-                                        <span class="instance-text">${instance.text}</span>
-                                        <span class="instance-severity ${severityClass}">${instance.category}</span>
-                                    </div>
-                                    <div>
-                                        <p class="mb-1"><strong>Severity:</strong> ${instance.severity}/10</p>
-                                        <p class="mb-1"><strong>Balanced alternative:</strong> ${instance.balanced_alternative}</p>
-                                        ${instance.missing_context ? `<p class="mb-0"><strong>Missing context:</strong> ${instance.missing_context}</p>` : ''}
-                                    </div>
-                                </div>
-                            `;
+                            comparisonContent.innerHTML += `<span class="${className}">${part.value}</span>`;
                         });
-                        
-                        document.getElementById('biasInstances').innerHTML = instancesHtml;
-                    } else {
-                        document.getElementById('biasInstances').innerHTML = '<p class="text-center text-muted">No bias instances detected</p>';
                     }
                     
-                    // Display missing context
-                    const missingContextItems = biasAnalysis.missing_context;
-                    if (missingContextItems && missingContextItems.length > 0) {
-                        let missingContextHtml = '';
-                        
-                        missingContextItems.forEach((item, index) => {
-                            missingContextHtml += `
-                                <div class="context-item">
-                                    <p class="mb-1"><strong>${item.statement}</strong></p>
-                                    <p class="mb-1"><strong>Missing context:</strong> ${item.context}</p>
-                                    <p class="mb-0"><strong>Importance:</strong> ${item.importance}/10</p>
-                                </div>
-                            `;
-                        });
-                        
-                        document.getElementById('missingContext').innerHTML = missingContextHtml;
-                    } else {
-                        document.getElementById('missingContext').innerHTML = '<p class="text-center text-muted">No missing context detected</p>';
+                    // Helper functions
+                    function formatCategoryName(name) {
+                        return name.charAt(0).toUpperCase() + name.slice(1).replace(/_/g, ' ');
                     }
                     
-                    // Display original and rewritten content
-                    document.getElementById('rewrittenContent').innerHTML = formatContent(data.rewritten);
-                    document.getElementById('originalContent').innerHTML = formatContent(data.original);
-                    document.getElementById('compareRewrittenContent').innerHTML = formatContent(data.rewritten);
-                    
-                    // Display diff
-                    displayDiff(data.comparison);
-                }
-                
-                // Format article content for display
-                function formatContent(content) {
-                    if (!content) return '<p>No content available</p>';
-                    
-                    return content
-                        .split('\\n\\n')
-                        .map(paragraph => `<p>${paragraph.trim()}</p>`)
-                        .join('');
-                }
-                
-                // Display diff between original and rewritten text
-                function displayDiff(comparison) {
-                    if (!comparison || !comparison.diff) {
-                        document.getElementById('diffContent').innerHTML = '<p>No comparison data available</p>';
-                        return;
+                    function getSeverityClass(severity) {
+                        if (severity > 0.7) return 'severity-high';
+                        if (severity > 0.4) return 'severity-medium';
+                        return 'severity-low';
                     }
                     
-                    let diffHtml = '';
-                    
-                    comparison.diff.forEach(diff => {
-                        if (diff.type === 'unchanged') {
-                            diffHtml += `<p>${diff.text}</p>`;
-                        } else if (diff.type === 'removed') {
-                            diffHtml += `<p class="diff-removed">${diff.text}</p>`;
-                        } else if (diff.type === 'added') {
-                            diffHtml += `<p class="diff-added">${diff.text}</p>`;
-                        }
-                    });
-                    
-                    document.getElementById('diffContent').innerHTML = diffHtml;
-                }
-                
-                // Get bias assessment text based on score
-                function getBiasAssessment(score) {
-                    if (score <= 30) {
-                        return 'This article shows low levels of bias and presents a relatively balanced viewpoint.';
-                    } else if (score <= 70) {
-                        return 'This article contains moderate bias. Some statements may lack context or present a particular viewpoint.';
-                    } else {
-                        return 'This article shows significant bias. It presents a one-sided viewpoint with emotional language or missing context.';
-                    }
-                }
-            });
-        </script>
-    </body>
+                    // Load a sample article on page load
+                    loadArticleBtn.click();
+                });
+            </script>
+        </body>
     </html>
     """
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
