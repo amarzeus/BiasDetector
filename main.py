@@ -4,12 +4,14 @@ import sys
 import argparse
 import logging
 import time
+import json
+import secrets
 from functools import wraps
 from datetime import datetime
-import json
 from pathlib import Path
 
 # Third-party imports
+import nltk
 from flask import Flask, render_template, send_from_directory, request, jsonify, make_response
 from flask_cors import CORS
 import markdown
@@ -21,10 +23,11 @@ from prometheus_client import Counter, Histogram, generate_latest
 REQUEST_COUNT = Counter('request_count', 'App Request Count', ['method', 'endpoint', 'status'])
 REQUEST_LATENCY = Histogram('request_latency_seconds', 'Request latency', ['endpoint'])
 
-# Configure logging
+# Configure logging with more detailed format
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s [%(filename)s:%(lineno)d] - %(message)s',
+    stream=sys.stdout
 )
 logger = logging.getLogger("BiasDetector")
 
@@ -34,34 +37,27 @@ cache = SimpleCache(default_timeout=300)
 class Config:
     def __init__(self):
         self.config_path = Path("config.json")
+        self.settings = {
+            "api": {
+                "rate_limit": 100,
+                "cache_timeout": 300
+            }
+        }
         self.load_config()
         
     def load_config(self):
         if self.config_path.exists():
-            with open(self.config_path) as f:
-                self.settings = json.load(f)
+            try:
+                with open(self.config_path) as f:
+                    self.settings.update(json.load(f))
+            except json.JSONDecodeError:
+                logger.error("Invalid config.json file")
         else:
-            self.settings = {
-                "api": {
-                    "rate_limit": 100,
-                    "cache_timeout": 300
-                },
-                "analysis": {
-                    "min_text_length": 100,
-                    "max_text_length": 10000,
-                    "default_model": "gpt-4o"
-                },
-                "features": {
-                    "real_time_analysis": True,
-                    "source_credibility": True,
-                    "comparative_analysis": True
-                }
-            }
             self.save_config()
             
     def save_config(self):
         with open(self.config_path, "w") as f:
-            json.dump(self.settings, f, indent=2)
+            json.dump(self.settings, f, indent=4)
             
 config = Config()
 
@@ -70,51 +66,16 @@ def monitor_performance(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         start_time = time.time()
-        status_code = 200
-        
         try:
             response = f(*args, **kwargs)
-            
-            if isinstance(response, (tuple, list)):
-                response, status_code = response
-                
+            status = response[1] if isinstance(response, tuple) else 200
+            REQUEST_COUNT.labels(method=request.method, endpoint=request.endpoint, status=status).inc()
+            REQUEST_LATENCY.labels(endpoint=request.endpoint).observe(time.time() - start_time)
+            return response
         except Exception as e:
-            status_code = 500
+            REQUEST_COUNT.labels(method=request.method, endpoint=request.endpoint, status=500).inc()
+            REQUEST_LATENCY.labels(endpoint=request.endpoint).observe(time.time() - start_time)
             raise
-            
-        finally:
-            duration = time.time() - start_time
-            endpoint = request.endpoint or 'unknown'
-            
-            # Update metrics
-            REQUEST_COUNT.labels(
-                method=request.method,
-                endpoint=endpoint,
-                status=status_code
-            ).inc()
-            
-            REQUEST_LATENCY.labels(
-                endpoint=endpoint
-            ).observe(duration)
-            
-            # Log detailed performance data
-            logger.info({
-                'method': request.method,
-                'path': request.path,
-                'endpoint': endpoint,
-                'duration': f"{duration:.2f}s",
-                'status': status_code,
-                'ip': request.remote_addr
-            })
-        
-        if isinstance(response, str):
-            response = make_response(response)
-            
-        # Add performance headers
-        response.headers['X-Response-Time'] = f"{duration:.2f}s"
-        response.headers['X-Rate-Limit-Remaining'] = str(get_rate_limit())
-        
-        return response if isinstance(response, str) else (response, status_code)
     return decorated_function
 
 # Rate limiting functionality
@@ -135,6 +96,14 @@ def handle_errors(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         try:
+            # Check rate limit
+            if get_rate_limit() <= 0:
+                return jsonify({"error": "Rate limit exceeded"}), 429
+            
+            # Update rate limit counter
+            update_rate_limit()
+            
+            # Execute the function
             return f(*args, **kwargs)
         except Exception as e:
             logger.exception(f"Error in {f.__name__}: {str(e)}")
@@ -441,50 +410,149 @@ for file in ['README.md', 'installation.md', 'usage.md', 'developers.md']:
             f.write(f'# {file[:-3].title()}\n\nContent coming soon.')
 
 
-# Entrypoint: Run the BiasBuster app
-def run_bias_buster():
-    parser = argparse.ArgumentParser(description='Run BiasBuster')
-    parser.add_argument('--dev', action='store_true', help='Run in development mode with hot reloading')
-    parser.add_argument('--port', type=int, default=int(os.environ.get("PORT", 5000)), help='Port to run on (default: 5000)')
-    parser.add_argument('--host', type=str, default=os.environ.get("HOST", "0.0.0.0"), help='Host to bind (default: 0.0.0.0)')
-    args = parser.parse_args()
+# Initialize NLTK
+nltk_data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'nltk_data')
+os.makedirs(nltk_data_dir, exist_ok=True)
+nltk.data.path.append(nltk_data_dir)  # type: ignore
 
-    port = args.port
-    host = args.host
-
-    if args.dev:
-        logger.info(f"Starting BiasBuster in development mode on http://{host}:{port}")
-        app.run(host=host, port=port, debug=True)
-    else:
+def ensure_nltk_data() -> None:
+    """Ensure NLTK data is downloaded, with fallback for offline mode"""
+    required_packages = ['punkt', 'averaged_perceptron_tagger', 'maxent_ne_chunker', 'words']
+    
+    for package in required_packages:
         try:
-            from gunicorn.app.base import BaseApplication
+            nltk.data.find(f'tokenizers/{package}' if package == 'punkt' else package)  # type: ignore
+        except LookupError:
+            try:
+                nltk.download(package, download_dir=nltk_data_dir, quiet=True)  # type: ignore
+            except Exception as e:
+                logger.error(f"Failed to download NLTK package {package}: {e}")
+                if package == 'punkt':
+                    raise RuntimeError("Critical NLTK data 'punkt' could not be downloaded. Cannot continue.")
 
-            class GunicornApplication(BaseApplication):
-                def __init__(self, app, options=None):
-                    self.options = options or {}
-                    self.application = app
-                    super().__init__()
+# Entrypoint: Run the BiasBuster app
+def run_bias_buster() -> None:
+    """Run the BiasDetector application with proper error handling"""
+    try:
+        parser = argparse.ArgumentParser(description='Run BiasBuster')
+        parser.add_argument('--dev', action='store_true', help='Run in development mode with hot reloading')
+        parser.add_argument('--port', type=int, default=int(os.environ.get("PORT", "5000")), help='Port to run on (default: 5000)')
+        parser.add_argument('--host', type=str, default=os.environ.get("HOST", "0.0.0.0"), help='Host to bind (default: 0.0.0.0)')
+        
+        args = parser.parse_args()
+        port: int = args.port
+        host: str = args.host
+        
+        # Validate port number
+        if port < 1 or port > 65535:
+            raise ValueError(f"Invalid port number: {port}")
+            
+        # Initialize required NLTK data
+        ensure_nltk_data()
+        
+        if args.dev:
+            logger.info(f"Starting BiasBuster in development mode on http://{host}:{port}")
+            app.run(host=host, port=port, debug=True)
+        else:
+            try:
+                from gunicorn.app.base import BaseApplication  # type: ignore
 
-                def load_config(self):
-                    for key, value in self.options.items():
-                        if key in self.cfg.settings and value is not None:
-                            self.cfg.set(key.lower(), value)
+                class GunicornApplication(BaseApplication):  # type: ignore
+                    def __init__(self, app, options=None):
+                        self.application = app
+                        self.options = options or {}
+                        super().__init__()
 
-                def load(self):
-                    return self.application
+                    def load_config(self):
+                        for key, value in self.options.items():
+                            if key in self.cfg.settings and value is not None:
+                                self.cfg.set(key.lower(), value)
 
-            options = {
-                'bind': f'{host}:{port}',
-                'workers': 2,
-                'timeout': 60,
-                'reload': False
-            }
+                    def load(self):
+                        return self.application
 
-            logger.info(f"Starting BiasBuster in production mode on http://{host}:{port}")
-            GunicornApplication(app, options).run()
-        except ImportError:
-            logger.warning("Gunicorn not found. Starting BiasBuster with Flask's built-in server. Not recommended for production use.")
-            app.run(host=host, port=port, debug=False)
+                options = {
+                    'bind': f'{host}:{port}',
+                    'workers': 2,
+                    'timeout': 60,
+                    'reload': False
+                }
 
-if __name__ == "__main__":
-    run_bias_buster()
+                logger.info(f"Starting BiasDetector in production mode on http://{host}:{port}")
+                GunicornApplication(app, options).run()
+            except ImportError:
+                logger.warning("Gunicorn not found. Starting BiasDetector with Flask's built-in server. Not recommended for production use.")
+                app.run(host=host, port=port, debug=False)
+    except Exception as e:
+        logger.error(f"Failed to start BiasBuster: {str(e)}")
+        raise
+
+@app.route('/generate_article', methods=['GET'])
+@monitor_performance
+@handle_errors
+def generate_article():
+    """Generate a new biased article for demo purposes"""
+    # List of biased article templates with different topics and biases
+    article_templates = {
+        "left": """
+        The heartless right-wing extremists have once again demonstrated their complete disregard for struggling families with their latest cruel tax policy. This shameful legislation, designed by corporate puppets and billionaire donors, will devastate working-class Americans while further enriching the ultra-wealthy elite. Every credible economist warns that this regressive approach will widen inequality to dangerous levels.
+
+        The callous disregard for basic human needs in this bill exposes the moral bankruptcy of conservative ideology. It's nothing but a thinly veiled attempt to dismantle social safety nets that millions of vulnerable citizens depend on. The bill's supporters deliberately ignore overwhelming evidence about the catastrophic social consequences we've seen from similar failed trickle-down experiments.
+
+        Progressive lawmakers heroically fought to protect ordinary citizens from this assault on their livelihoods. They understand what real American families truly need, unlike the out-of-touch conservative politicians who only care about pleasing their wealthy donors and corporate masters.
+
+        We must stand united against this dangerous regression to failed policies of the past. History has proven time and again that shared prosperity comes from investing in people, not giving handouts to the already privileged. This bill is nothing less than class warfare against struggling Americans.
+        """,
+        "right": """
+        The radical left-wing Democrats have once again pushed their extreme agenda on hardworking Americans with their latest legislative disaster. This bill, crafted by out-of-touch coastal elites, will surely destroy jobs and wreck our economy. Experts who have actually studied economics, unlike these politicians, agree that these policies always fail.
+
+        The reckless spending in this legislation will bankrupt our nation while doing nothing to help ordinary citizens. It's simply a power grab designed to control more aspects of Americans' lives through big government programs. The bill's supporters ignore the catastrophic consequences we've seen time and again from similar socialist experiments in other countries.
+
+        Conservative lawmakers courageously fought against this terrible bill, standing up for freedom and fiscal responsibility. They understand what everyday Americans truly need, unlike the liberal politicians who only listen to special interest groups and their radical base.
+
+        We must reject this destructive ideology before it's too late. Real Americans know that the free market, not government intervention, is the path to prosperity. This bill is nothing short of an attack on our values and way of life.
+        """,
+        "environmental": """
+        Climate change deniers have once again blocked crucial environmental protection legislation, proving they care more about corporate profits than the future of our planet. This reckless obstruction, orchestrated by fossil fuel lobbyists and their political puppets, dooms future generations to a catastrophic environmental collapse. Every legitimate scientist has warned us about the dire consequences of inaction.
+
+        The complete dismissal of scientific consensus in this debate reveals how corrupted our political system has become by dirty energy money. It's a shameful abdication of moral responsibility to protect our shared natural resources. The opponents of climate action callously disregard the overwhelming evidence linking fossil fuel consumption to devastating extreme weather events already affecting millions.
+
+        Environmental champions continue their brave fight against these powerful corporate interests despite being massively outspent. They represent the true will of the people, unlike the bought-and-paid-for politicians who serve only their industry donors while betraying their constituents.
+
+        We cannot surrender to this corrupt alliance between polluters and politicians. The undeniable reality is that sustainable practices and renewable energy represent our only viable future. This obstruction of progress is nothing short of an intergenerational crime against humanity.
+        """,
+        "technology": """
+        Big Tech monopolies are systematically destroying small businesses and recklessly invading our privacy with their predatory practices. These Silicon Valley giants, run by arrogant billionaires with god complexes, have accumulated unprecedented power over our economy and democracy. Independent experts universally condemn their anti-competitive tactics that crush innovation.
+
+        The blatant disregard for user privacy and data security demonstrates the moral bankruptcy of these digital overlords. They've created addictive platforms deliberately designed to harvest our personal information and manipulate our behavior. The defenders of these companies conveniently ignore the mounting evidence linking social media to serious mental health issues, especially among vulnerable youth.
+
+        A few brave lawmakers continue speaking truth to power despite massive lobbying campaigns from the tech industry. They understand what ordinary citizens truly need, unlike the tech-captured regulators who rotate between government positions and lucrative industry jobs.
+
+        We must break up these dangerous monopolies before they completely undermine our democratic institutions. History has shown that unchecked corporate power inevitably leads to exploitation and abuse. This threat to our fundamental freedoms cannot be overstated.
+        """,
+        "healthcare": """
+        The heartless opponents of universal healthcare have once again blocked vital reforms that would save countless lives, proving they value corporate profits over human suffering. This cruel obstruction, orchestrated by pharmaceutical and insurance lobbyists, condemns millions of Americans to bankruptcy and preventable deaths. Every reputable medical organization supports these necessary changes.
+
+        The callous disregard for public health in this debate exposes the moral bankruptcy of those who defend our broken system. It's nothing but a cynical attempt to preserve the obscene profits of healthcare corporations at the expense of ordinary citizens. The reform opponents deliberately ignore overwhelming evidence from dozens of countries with successful universal healthcare models.
+
+        Progressive advocates continue their heroic fight despite being massively outspent by industry propaganda. They represent the true will of the people, unlike the corrupt politicians who serve only their donors while betraying their constituents' healthcare needs.
+
+        We cannot surrender to this sinister alliance between profiteers and politicians. The undeniable reality is that universal healthcare is not only morally necessary but economically superior to our wasteful private system. This obstruction of reform is costing American lives every single day.
+        """
+    }
+    
+    # Select a template based on bias type parameter or default to left
+    bias_type = request.args.get('bias_type', 'left')
+    article = article_templates.get(bias_type, article_templates['left'])
+    
+    return jsonify({
+        "content": article.strip(),
+        "bias_type": bias_type
+    })
+
+@app.route('/demo')
+@monitor_performance
+@handle_errors
+def demo():
+    """Interactive demo page for the BiasDetector API"""
+    return render_template('demo.html')

@@ -1,37 +1,28 @@
+"""
+Legacy module that re-exports functionality from other modules.
+This module is kept for backward compatibility but will be removed in a future version.
+Please use the new modules directly:
+- ai_processor for core AI functionality
+- text_utils for text processing utilities
+- vector_math for mathematical operations
+- models for data classes
+"""
 import logging
-import re
-import difflib
-import nltk
-import os
-import textblob
-from typing import Dict, List, Tuple
-from collections import defaultdict
-import requests
-from urllib.parse import urlparse
-import hashlib
-import json
+from typing import Dict, Any, Optional
 
-# Setup logging before anything else
-logging.basicConfig(level=logging.DEBUG)
+from backend.ai_processor import (
+    analyze_text as detect_bias,
+    rewrite_text as rewrite_for_balance,
+    analyze_and_rewrite
+)
+from backend.text_utils import (
+    clean_text,
+    extract_main_content,
+    compare_texts
+)
+from backend.models import BiasMetrics, SourceCredibility
 
-# Create a directory for NLTK data in the current project folder
-nltk_data_dir = os.path.join(os.getcwd(), 'nltk_data')
-os.makedirs(nltk_data_dir, exist_ok=True)
-nltk.data.path.insert(0, nltk_data_dir)
-
-# Download NLTK data if it's not already downloaded
-try:
-    nltk.data.find('tokenizers/punkt')
-    logging.info("NLTK punkt data found.")
-except LookupError as e:
-    logging.warning(f"NLTK punkt data not found: {e}")
-    try:
-        logging.info(f"Attempting to download NLTK punkt data to {nltk_data_dir}...")
-        nltk.download('punkt', download_dir=nltk_data_dir)
-        logging.info("NLTK punkt data successfully downloaded.")
-    except Exception as download_error:
-        logging.error(f"Failed to download NLTK data: {download_error}")
-        logging.warning("Will use fallback tokenization methods.")
+logger = logging.getLogger(__name__)
 
 from nltk.tokenize import sent_tokenize
 from backend.ai_processor import detect_bias, rewrite_for_balance, detect_missing_context

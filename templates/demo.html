@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BiasDetector Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f5f5f5;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .card {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            color: #2c3e50;
+        }
+        select, button {
+            padding: 8px 12px;
+            margin: 5px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        #articleText, #analysisResult, #rewrittenText {
+            white-space: pre-wrap;
+            margin: 10px 0;
+        }
+        .bias-high {
+            color: #e74c3c;
+        }
+        .bias-medium {
+            color: #f39c12;
+        }
+        .bias-low {
+            color: #27ae60;
+        }
+    </style>
+</head>
+<body>
+    <h1>BiasDetector Demo</h1>
+    <p>This demo shows how BiasDetector analyzes and rewrites articles to reduce bias.</p>
+    
+    <div>
+        <select id="biasType">
+            <option value="left">Left-biased Article</option>
+            <option value="right">Right-biased Article</option>
+            <option value="environmental">Environmental Article</option>
+            <option value="technology">Technology Article</option>
+            <option value="healthcare">Healthcare Article</option>
+        </select>
+        <button onclick="generateArticle()">Generate Sample Article</button>
+        <button onclick="analyzeArticle()">Analyze</button>
+        <button onclick="rewriteArticle()">Rewrite</button>
+    </div>
+
+    <div class="loading" id="loading">
+        <p>Processing... Please wait...</p>
+    </div>
+
+    <div class="container">
+        <div class="card">
+            <h2>Original Article</h2>
+            <div id="articleText"></div>
+        </div>
+        <div class="card">
+            <h2>Analysis Results</h2>
+            <div id="analysisResult"></div>
+        </div>
+        <div class="card">
+            <h2>Rewritten Article</h2>
+            <div id="rewrittenText"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentArticle = '';
+        let currentAnalysis = null;
+
+        async function generateArticle() {
+            const biasType = document.getElementById('biasType').value;
+            document.getElementById('loading').style.display = 'block';
+            
+            try {
+                const response = await fetch(`/generate_article?bias_type=${biasType}`);
+                const data = await response.json();
+                currentArticle = data.content;
+                document.getElementById('articleText').textContent = currentArticle;
+                document.getElementById('analysisResult').textContent = '';
+                document.getElementById('rewrittenText').textContent = '';
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to generate article');
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        async function analyzeArticle() {
+            if (!currentArticle) {
+                alert('Please generate an article first');
+                return;
+            }
+            
+            document.getElementById('loading').style.display = 'block';
+            
+            try {
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        content: currentArticle
+                    })
+                });
+                
+                currentAnalysis = await response.json();
+                displayAnalysis(currentAnalysis);
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to analyze article');
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        async function rewriteArticle() {
+            if (!currentArticle || !currentAnalysis) {
+                alert('Please analyze the article first');
+                return;
+            }
+            
+            document.getElementById('loading').style.display = 'block';
+            
+            try {
+                const response = await fetch('/rewrite', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        content: currentArticle,
+                        bias_analysis: currentAnalysis
+                    })
+                });
+                
+                const result = await response.json();
+                document.getElementById('rewrittenText').textContent = result.rewritten_content;
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to rewrite article');
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        function displayAnalysis(analysis) {
+            const resultsDiv = document.getElementById('analysisResult');
+            let html = '';
+            
+            html += `<p>Overall Bias Score: <span class="${getBiasClass(analysis.bias_score)}">${analysis.bias_score.toFixed(2)}</span></p>`;
+            
+            if (analysis.bias_types) {
+                html += '<h3>Detected Bias Types:</h3><ul>';
+                for (const [type, score] of Object.entries(analysis.bias_types)) {
+                    html += `<li>${type}: <span class="${getBiasClass(score)}">${score.toFixed(2)}</span></li>`;
+                }
+                html += '</ul>';
+            }
+            
+            if (analysis.language_markers) {
+                html += '<h3>Language Analysis:</h3><ul>';
+                for (const marker of analysis.language_markers) {
+                    html += `<li>${marker}</li>`;
+                }
+                html += '</ul>';
+            }
+            
+            resultsDiv.innerHTML = html;
+        }
+
+        function getBiasClass(score) {
+            if (score >= 0.7) return 'bias-high';
+            if (score >= 0.4) return 'bias-medium';
+            return 'bias-low';
+        }
+
+        // Generate an initial article on page load
+        generateArticle();
+    </script>
+</body>
+</html>
