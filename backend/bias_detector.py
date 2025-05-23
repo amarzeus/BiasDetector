@@ -3,6 +3,13 @@ import re
 import difflib
 import nltk
 import os
+import textblob
+from typing import Dict, List, Tuple
+from collections import defaultdict
+import requests
+from urllib.parse import urlparse
+import hashlib
+import json
 
 # Setup logging before anything else
 logging.basicConfig(level=logging.DEBUG)
@@ -122,122 +129,147 @@ def split_into_sections(text, max_length=1000):
     
     return sections
 
-def analyze_article(content, url=None, api_key=None):
-    """
-    Analyze an article for bias, categorizing and quantifying different types
-    
-    Args:
-        content (str): The article content
-        url (str, optional): The URL of the article
-        api_key (str, optional): The OpenAI API key to use
+class BiasMetrics:
+    def __init__(self):
+        self.sentiment_score = 0.0
+        self.subjectivity_score = 0.0
+        self.bias_categories = defaultdict(float)
+        self.source_credibility = 0.0
+        self.context_completeness = 0.0
         
-    Returns:
-        dict: Analysis results including bias scores, bias instances, and overall assessment
-    """
-    try:
-        # Clean and extract the main content
-        cleaned_content = clean_text(content)
-        main_content = extract_main_content(cleaned_content)
-        
-        # Split into manageable sections if long
-        if len(main_content) > 2000:
-            sections = split_into_sections(main_content)
-        else:
-            sections = [main_content]
-        
-        # Process each section
-        section_analyses = []
-        for section in sections:
-            section_analysis = detect_bias(section, api_key)
-            section_analyses.append(section_analysis)
-        
-        # Combine section analyses
-        bias_instances = []
-        bias_categories = {
-            "political": 0,
-            "emotional": 0,
-            "framing": 0,
-            "source": 0,
-            "factual": 0,
-            "omission": 0
+    def to_dict(self) -> dict:
+        return {
+            'sentiment': round(self.sentiment_score, 2),
+            'subjectivity': round(self.subjectivity_score, 2),
+            'bias_categories': dict(self.bias_categories),
+            'source_credibility': round(self.source_credibility, 2),
+            'context_completeness': round(self.context_completeness, 2)
         }
-        
-        total_sections = len(section_analyses)
-        
-        for analysis in section_analyses:
-            for instance in analysis.get("bias_instances", []):
-                bias_instances.append(instance)
-                # Increment category count
-                category = instance.get("category", "other")
-                if category in bias_categories:
-                    bias_categories[category] += 1
-        
-        # Calculate overall bias score (0-100)
-        total_bias_instances = len(bias_instances)
-        bias_severity_sum = sum(instance.get("severity", 0) for instance in bias_instances)
-        
-        # Avoid division by zero
-        overall_bias_score = 0
-        if total_bias_instances > 0:
-            overall_bias_score = min(100, (bias_severity_sum / total_bias_instances) * 20)
-        
-        # Determine missing context
-        missing_context = detect_missing_context(main_content, api_key)
-        
-        result = {
-            "bias_score": overall_bias_score,
-            "bias_categories": bias_categories,
-            "bias_instances": bias_instances,
-            "missing_context": missing_context,
-            "total_bias_instances": total_bias_instances
-        }
-        
-        if url:
-            result["url"] = url
-            
-        return result
-            
-    except Exception as e:
-        logging.error(f"Error analyzing article: {str(e)}")
-        raise
 
-def rewrite_article(content, bias_analysis, api_key=None):
-    """
-    Rewrite an article to present a more balanced viewpoint
+class SourceCredibility:
+    def __init__(self):
+        self.credibility_cache = {}
+        self.cache_file = 'credibility_cache.json'
+        self._load_cache()
     
-    Args:
-        content (str): The original article content
-        bias_analysis (dict): The bias analysis results
-        api_key (str, optional): The OpenAI API key to use
+    def _load_cache(self):
+        try:
+            with open(self.cache_file, 'r') as f:
+                self.credibility_cache = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            self.credibility_cache = {}
+    
+    def _save_cache(self):
+        with open(self.cache_file, 'w') as f:
+            json.dump(self.credibility_cache, f)
+    
+    def get_source_credibility(self, url: str) -> float:
+        domain = urlparse(url).netloc
         
-    Returns:
-        str: The rewritten article
+        if domain in self.credibility_cache:
+            return self.credibility_cache[domain]
+        
+        # Calculate credibility score based on multiple factors
+        score = self._analyze_source(domain)
+        self.credibility_cache[domain] = score
+        self._save_cache()
+        
+        return score
+    
+    def _analyze_source(self, domain: str) -> float:
+        # Implement source analysis logic here
+        # This would typically involve checking against known credible sources,
+        # fact-checking organizations, and other metadata
+        score = 0.7  # Default score
+        return score
+
+def analyze_sentiment(text: str) -> Tuple[float, float]:
+    """
+    Analyze the sentiment and subjectivity of the text using TextBlob
+    Returns: (sentiment_score, subjectivity_score)
     """
     try:
-        # Clean and extract the main content
-        cleaned_content = clean_text(content)
-        main_content = extract_main_content(cleaned_content)
-        
-        # Split into manageable sections if long
-        if len(main_content) > 2000:
-            sections = split_into_sections(main_content)
-        else:
-            sections = [main_content]
-        
-        # Rewrite each section
-        rewritten_sections = []
-        for section in sections:
-            rewritten_section = rewrite_for_balance(section, bias_analysis, api_key)
-            rewritten_sections.append(rewritten_section)
-        
-        # Combine rewritten sections
-        rewritten_content = ' '.join(rewritten_sections)
-        
-        return rewritten_content
-            
+        blob = textblob.TextBlob(text)
+        return blob.sentiment.polarity, blob.sentiment.subjectivity
     except Exception as e:
-        logging.error(f"Error rewriting article: {str(e)}")
-        raise
+        logging.error(f"Error in sentiment analysis: {e}")
+        return 0.0, 0.0
+
+def analyze_historical_context(text: str, topic: str) -> Dict[str, str]:
+    """
+    Analyze if important historical context is missing from the article
+    """
+    # This would typically involve checking against a knowledge base
+    # For now, we'll use a simplified implementation
+    context_results = {
+        'missing_context': [],
+        'related_events': [],
+        'time_period': detect_time_period(text)
+    }
+    return context_results
+
+def detect_time_period(text: str) -> str:
+    """
+    Detect the time period discussed in the text
+    """
+    # Implementation would involve NLP-based temporal expression extraction
+    # For now, return a placeholder
+    return "contemporary"
+
+def find_similar_articles(text: str, url: str = None) -> List[dict]:
+    """
+    Find similar articles for comparative analysis
+    """
+    # This would typically involve:
+    # 1. Text embedding
+    # 2. Similarity search in a database
+    # 3. Retrieving and comparing articles
+    # For now, return a simplified implementation
+    return []
+
+def analyze_article(text: str, url: str = None) -> Dict:
+    """
+    Enhanced article analysis with advanced bias detection
+    """
+    text = clean_text(text)
+    content = extract_main_content(text)
+    
+    # Initialize metrics
+    metrics = BiasMetrics()
+    
+    # Sentiment and subjectivity analysis
+    sentiment, subjectivity = analyze_sentiment(content)
+    metrics.sentiment_score = sentiment
+    metrics.subjectivity_score = subjectivity
+    
+    # Source credibility
+    if url:
+        source_checker = SourceCredibility()
+        metrics.source_credibility = source_checker.get_source_credibility(url)
+    
+    # Bias detection
+    bias_results = detect_bias(content)
+    metrics.bias_categories.update(bias_results['categories'])
+    
+    # Historical context analysis
+    context_results = analyze_historical_context(content, bias_results.get('topic', ''))
+    metrics.context_completeness = len(context_results['missing_context']) * -0.1 + 1.0
+    
+    # Find similar articles for comparison
+    similar_articles = find_similar_articles(content, url)
+    
+    # Generate balanced rewrite suggestions
+    rewrite_suggestions = rewrite_for_balance(content, bias_results)
+    
+    return {
+        'metrics': metrics.to_dict(),
+        'bias_detected': bias_results['bias_detected'],
+        'categories': bias_results['categories'],
+        'context': context_results,
+        'similar_articles': similar_articles,
+        'suggestions': rewrite_suggestions,
+        'original_text': content
+    }
 
 def compare_texts(original, rewritten):
     """

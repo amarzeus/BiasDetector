@@ -727,3 +727,173 @@ def demo():
         </body>
     </html>
     """
+
+@app.route('/api/v2/analyze', methods=['POST'])
+def analyze_v2():
+    """
+    Enhanced analyze endpoint with advanced bias detection features
+    """
+    try:
+        data = request.get_json()
+        
+        if not data or not data.get('text'):
+            return jsonify({
+                'error': 'No text provided',
+                'status': 'error'
+            }), 400
+            
+        text = data['text']
+        url = data.get('url')  # Optional URL for source credibility
+        
+        # Perform enhanced analysis
+        analysis_results = analyze_article(text, url)
+        
+        return jsonify({
+            'status': 'success',
+            'data': analysis_results
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in analyze_v2: {str(e)}", exc_info=True)
+        return jsonify({
+            'error': str(e),
+            'status': 'error'
+        }), 500
+
+@app.route('/api/v2/comparative-analysis', methods=['POST'])
+def comparative_analysis():
+    """
+    Compare multiple articles for bias analysis
+    """
+    try:
+        data = request.get_json()
+        
+        if not data or not data.get('articles'):
+            return jsonify({
+                'error': 'No articles provided',
+                'status': 'error'
+            }), 400
+            
+        articles = data['articles']
+        if not isinstance(articles, list) or len(articles) < 2:
+            return jsonify({
+                'error': 'At least two articles are required for comparison',
+                'status': 'error'
+            }), 400
+            
+        # Analyze each article
+        results = []
+        for article in articles:
+            text = article.get('text', '')
+            url = article.get('url')
+            analysis = analyze_article(text, url)
+            results.append(analysis)
+            
+        # Compare results
+        comparison = {
+            'sentiment_variance': calculate_variance([r['metrics']['sentiment'] for r in results]),
+            'bias_similarity': calculate_bias_similarity([r['categories'] for r in results]),
+            'context_overlap': analyze_context_overlap([r['context'] for r in results]),
+            'individual_results': results
+        }
+        
+        return jsonify({
+            'status': 'success',
+            'data': comparison
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in comparative_analysis: {str(e)}", exc_info=True)
+        return jsonify({
+            'error': str(e),
+            'status': 'error'
+        }), 500
+
+@app.route('/api/v2/source-credibility', methods=['GET'])
+def check_source_credibility():
+    """
+    Check the credibility of a news source
+    """
+    try:
+        url = request.args.get('url')
+        
+        if not url:
+            return jsonify({
+                'error': 'No URL provided',
+                'status': 'error'
+            }), 400
+              from backend.bias_detector import SourceCredibility
+        source_checker = SourceCredibility()
+        credibility_score = source_checker.get_source_credibility(url)
+        
+        return jsonify({
+            'status': 'success',
+            'data': {
+                'url': url,
+                'credibility_score': credibility_score
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in check_source_credibility: {str(e)}", exc_info=True)
+        return jsonify({
+            'error': str(e),
+            'status': 'error'
+        }), 500
+
+def calculate_variance(values):
+    """Calculate the statistical variance of a list of values"""
+    if not values:
+        return 0
+    mean = sum(values) / len(values)
+    squared_diff_sum = sum((x - mean) ** 2 for x in values)
+    return squared_diff_sum / len(values)
+
+def calculate_bias_similarity(category_lists):
+    """Calculate similarity between bias category distributions"""
+    # Convert category lists to vectors and calculate cosine similarity
+    all_categories = set()
+    for cats in category_lists:
+        all_categories.update(cats.keys())
+        
+    vectors = []
+    for cats in category_lists:
+        vector = [cats.get(cat, 0) for cat in all_categories]
+        vectors.append(vector)
+        
+    # Calculate average pairwise similarity
+    similarities = []
+    for i in range(len(vectors)):
+        for j in range(i + 1, len(vectors)):
+            similarity = cosine_similarity(vectors[i], vectors[j])
+            similarities.append(similarity)
+            
+    return sum(similarities) / len(similarities) if similarities else 0
+
+def cosine_similarity(v1, v2):
+    """Calculate cosine similarity between two vectors"""
+    dot_product = sum(a * b for a, b in zip(v1, v2))
+    norm1 = sum(a * a for a in v1) ** 0.5
+    norm2 = sum(b * b for b in v2) ** 0.5
+    return dot_product / (norm1 * norm2) if norm1 * norm2 != 0 else 0
+
+def analyze_context_overlap(context_lists):
+    """Analyze how much context overlaps between articles"""
+    # Extract all related events and missing context
+    all_events = set()
+    all_missing = set();
+    
+    for ctx in context_lists:
+        all_events.update(ctx['related_events']);
+        all_missing.update(ctx['missing_context']);
+    
+    # Calculate overlap ratios    events_sum = sum(len(ctx['related_events']) for ctx in context_lists)
+    missing_sum = sum(len(ctx['missing_context']) for ctx in context_lists)
+    
+    event_overlap = len(all_events) / (events_sum if events_sum > 0 else 1)
+    missing_overlap = len(all_missing) / (missing_sum if missing_sum > 0 else 1)
+    
+    return {
+        'event_overlap': event_overlap,
+        'missing_context_overlap': missing_overlap
+    }

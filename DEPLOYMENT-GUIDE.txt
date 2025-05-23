@@ -41,16 +41,16 @@ This guide provides instructions for deploying the BiasDetector application in d
 
 You can run the application in several ways:
 
-#### Using the run.py script (Recommended)
+#### Using the main.py script (Recommended)
 
 For development with auto-reloading:
 ```
-python run.py --dev
+python main.py --dev
 ```
 
 For production:
 ```
-python run.py
+python main.py
 ```
 
 #### Using Flask command

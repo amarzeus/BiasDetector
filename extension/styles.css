@@ -151,16 +151,12 @@
 .bias-detector-tabs {
   display: flex;
   border-bottom: 1px solid #dee2e6;
-<<<<<<< HEAD
   position: relative;
   z-index: 10;
-=======
->>>>>>> 7b55693 (Add project files and documentation for the BiasDetector Chrome extension.)
 }
 
 .bias-detector-tab {
   flex: 1;
-<<<<<<< HEAD
   padding: 12px 10px;
   margin: 0 2px;
   text-align: center;
@@ -190,59 +186,30 @@
   color: #4b6cb7;
   z-index: 7;
   box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.05);
-=======
-  padding: 10px;
-  text-align: center;
-  background: none;
-  border: none;
-  border-bottom: 3px solid transparent;
-  cursor: pointer;
-  font-weight: 500;
-  color: #6c757d;
-}
-
-.bias-detector-tab:hover {
-  background-color: #f8f9fa;
-  color: #4b6cb7;
-}
-
-.bias-detector-tab.active {
-  border-bottom-color: #4b6cb7;
-  color: #4b6cb7;
->>>>>>> 7b55693 (Add project files and documentation for the BiasDetector Chrome extension.)
 }
 
 .bias-detector-content {
   flex: 1;
   overflow-y: auto;
   padding: 15px;
-<<<<<<< HEAD
   position: relative;
   z-index: 5;
   background-color: #fff;
-=======
->>>>>>> 7b55693 (Add project files and documentation for the BiasDetector Chrome extension.)
 }
 
 .bias-detector-tab-content {
   display: none;
-<<<<<<< HEAD
   opacity: 0;
   transition: opacity 0.3s ease;
   height: 0;
   overflow: hidden;
-=======
->>>>>>> 7b55693 (Add project files and documentation for the BiasDetector Chrome extension.)
 }
 
 .bias-detector-tab-content.active {
   display: block;
-<<<<<<< HEAD
   opacity: 1;
   height: auto;
   overflow: visible;
-=======
->>>>>>> 7b55693 (Add project files and documentation for the BiasDetector Chrome extension.)
 }
 
 .bias-detector-footer {
@@ -434,7 +401,6 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-<<<<<<< HEAD
   padding: 12px;
   background-color: #f8f9fa;
   border-bottom: 1px solid #dee2e6;
@@ -447,29 +413,16 @@
 .bias-detector-instance-header:hover,
 .bias-detector-context-header:hover {
   background-color: #e9ecef;
-=======
-  padding: 10px;
-  background-color: #f8f9fa;
-  border-bottom: 1px solid #dee2e6;
->>>>>>> 7b55693 (Add project files and documentation for the BiasDetector Chrome extension.)
 }
 
 .bias-detector-instance-text,
 .bias-detector-context-statement {
-<<<<<<< HEAD
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 65%;
   pointer-events: none;
-=======
-  font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 70%;
->>>>>>> 7b55693 (Add project files and documentation for the BiasDetector Chrome extension.)
 }
 
 .bias-detector-instance-category,
@@ -519,4 +472,66 @@
 .bias-detector-instance-details p:last-child,
 .bias-detector-context-details p:last-child {
   margin-bottom: 0;
+}
+
+/* Chart and Visualization styles */
+.chart-container {
+  background-color: var(--bd-bg);
+  border-radius: var(--bd-border-radius);
+  padding: 1rem;
+  margin: 1rem 0;
+  box-shadow: var(--bd-box-shadow);
+}
+
+#visualization {
+  padding: 1rem;
+}
+
+.result-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Tab styles */
+.nav-tabs {
+  border-color: var(--bd-border);
+}
+
+.nav-tabs .nav-link {
+  color: var(--bd-text);
+  border-color: transparent;
+}
+
+.nav-tabs .nav-link:hover {
+  border-color: var(--bd-border);
+}
+
+.nav-tabs .nav-link.active {
+  color: var(--bd-primary);
+  border-color: var(--bd-border) var(--bd-border) var(--bd-bg);
+}
+
+/* Alert styles */
+.alert {
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+  border-radius: var(--bd-border-radius);
+}
+
+.alert-danger {
+  background-color: rgba(220, 53, 69, 0.1);
+  border: 1px solid rgba(220, 53, 69, 0.2);
+  color: var(--bd-danger);
+}
+
+/* Import/Export buttons */
+#import-btn,
+#export-btn {
+  transition: all 0.2s ease-in-out;
+}
+
+#import-btn:hover,
+#export-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--bd-box-shadow);
 }

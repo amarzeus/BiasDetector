@@ -1,60 +1,205 @@
----
-layout: default
-title: Usage Guide - BiasDetector
----
+# BiasDetector User Guide
 
-# Usage Guide
+## Introduction
 
-## Basic Usage
+BiasDetector helps you identify and mitigate bias in text content. Using advanced AI and machine learning techniques, it provides comprehensive analysis of bias in articles, news stories, and other content, helping ensure balanced and fair reporting.
 
-### Analyzing an Article
-1. Navigate to any news article you want to analyze
-2. Click the BiasDetector icon in your browser toolbar
-3. Click "Analyze Article"
-4. Wait for the analysis to complete (usually takes 15-30 seconds)
+## Getting Started
 
-### Understanding the Results
-The analysis results include:
+### Browser Extension Installation
 
-- **Bias Score**: A 0-100 rating of overall bias (higher = more biased)
-- **Bias Categories**: Types of bias detected (political, emotional, etc.)
-- **Bias Instances**: Specific examples of biased language
-- **Rewritten Article**: A more balanced version of the content
-- **Side-by-Side Comparison**: Compare original and balanced versions
+1. **Chrome Users**
+   - Visit the Chrome Web Store
+   - Search for "BiasDetector"
+   - Click "Add to Chrome"
+   - Accept the permissions
 
-### Viewing the Rewritten Article
-1. Once analysis is complete, click the "Rewritten" tab
-2. Read the AI-generated neutral version of the article
-3. Click "Compare" to see a side-by-side comparison highlighting changes
+2. **Firefox Users**
+   - Visit Firefox Add-ons
+   - Search for "BiasDetector"
+   - Click "Add to Firefox"
+   - Accept the permissions
 
-### Analyzing Missing Context
-1. Click the "Missing Context" tab after analysis
-2. Review the AI-identified important context that may be missing
-3. This helps understand what perspectives or facts might be omitted
+### First-Time Setup
 
-## Advanced Features
+1. **API Key Configuration (Optional)**
+   - Click the BiasDetector icon
+   - Open Settings (gear icon)
+   - Enter your OpenAI API key
+   - Save settings
 
-### Working with API Keys
-For full functionality, you can use your own OpenAI API key:
+2. **Quick Tutorial**
+   - First-time users get an interactive guide
+   - Learn key features and controls
+   - Customize your preferences
 
-1. Click the Settings button (gear icon)
-2. Enter your OpenAI API key in the designated field
-3. Click back to save
+## Core Features
 
-Without an API key, BiasDetector operates in demo mode with limited functionality.
+### 1. Advanced Bias Analysis
 
-### Recent Articles History
-BiasDetector stores your recently analyzed articles:
+#### Real-Time Analysis
+- Instant feedback as you type
+- Live bias score updates
+- Pattern detection and highlighting
+- Contextual suggestions
 
-1. Click the "Recent" tab in the extension popup
-2. Select any previous analysis to view it again
-3. Click "Clear History" to remove all stored analyses
+#### Comprehensive Bias Categories
+- Political bias detection
+- Emotional language analysis
+- Framing bias identification
+- Source credibility checking
+- Factual accuracy assessment
+- Context completeness evaluation
+
+#### Visual Analytics
+- Interactive bias radar chart
+- Category distribution visualization
+- Trend analysis over time
+- Comparative visualizations
+
+### 2. Source Credibility
+
+#### Automatic Source Evaluation
+- Domain reputation analysis
+- Historical accuracy tracking
+- Cross-reference checking
+- Transparency score
+
+#### Credibility Metrics
+- Overall trust score (0-100)
+- Fact-checking history
+- Citation analysis
+- Editorial standards assessment
+
+### 3. Comparative Analysis
+
+#### Multi-Article Analysis
+1. Open multiple articles on the same topic
+2. Click "Compare Articles"
+3. Review side-by-side analysis
+
+#### Comparison Features
+- Bias pattern matching
+- Perspective comparison
+- Source agreement analysis
+- Context overlap detection
+- Narrative difference highlighting
+
+### 4. Data Export and Sharing
+
+#### Export Options
+- Full analysis report (PDF)
+- Raw data (JSON)
+- Visualization charts
+- Comparative studies
+
+#### Sharing Features
+- Shareable report links
+- Team collaboration tools
+- Integration with common platforms
+
+## Advanced Usage
+
+### 1. Custom Analysis Settings
+
+#### Bias Detection Sensitivity
+- Adjust detection thresholds
+- Customize category weights
+- Set minimum confidence levels
+- Configure alert triggers
+
+#### Analysis Scope
+- Select specific bias types
+- Choose analysis depth
+- Set context boundaries
+- Define comparison criteria
+
+### 2. API Integration
+
+#### REST API Access
+- Endpoint documentation
+- Authentication setup
+- Rate limit information
+- Example implementations
+
+#### Batch Processing
+- Multiple document analysis
+- Bulk comparison features
+- Automated reporting
+- Scheduled analysis
+
+## Best Practices
+
+### 1. Optimal Analysis
+
+#### Text Length
+- Minimum: 100 words
+- Optimal: 500-5000 words
+- Maximum: 10,000 words per analysis
+
+#### Source Selection
+- Use primary sources when available
+- Include multiple perspectives
+- Verify source credibility
+- Check publication dates
+
+### 2. Interpreting Results
+
+#### Bias Scores
+- 0-20: Minimal bias
+  - Balanced presentation
+  - Multiple perspectives
+  - Factual focus
+- 21-40: Slight bias
+  - Minor language concerns
+  - Some perspective limits
+  - Generally balanced
+- 41-60: Moderate bias
+  - Clear perspective bias
+  - Emotional language
+  - Limited viewpoints
+- 61-80: Significant bias
+  - Strong bias indicators
+  - Missing perspectives
+  - Emotional manipulation
+- 81-100: Extreme bias
+  - Propaganda-like content
+  - Single viewpoint
+  - Heavy manipulation
+
+#### Using Insights
+- Review all bias categories
+- Consider context
+- Check source credibility
+- Compare multiple sources
+- Look for missing perspectives
 
 ## Troubleshooting
 
-If BiasDetector fails to analyze an article:
+### Common Issues
 
-1. Refresh the page and try again
-2. Check if the article content is properly loading
-3. Ensure your API key is valid (if using one)
-4. Some complex page layouts may not be properly detected
+#### Analysis Failures
+- Check text length
+- Verify API key
+- Ensure internet connection
+- Clear browser cache
+
+#### Accuracy Concerns
+- Update extension
+- Check sensitivity settings
+- Provide more context
+- Use multiple analyses
+
+## Support and Resources
+
+### Getting Help
+- Documentation
+- Community forum
+- Email support
+- Video tutorials
+
+### Updates and Feedback
+- Regular feature updates
+- Bug reporting
+- Feature requests
+- Community contributions

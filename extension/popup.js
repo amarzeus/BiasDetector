@@ -494,69 +494,131 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       diffContent.innerHTML = '<p class="text-center text-muted small py-3">No comparison data available</p>';
     }
-  }
-  
-  function displayDiff(comparison) {
-    let diffHtml = '';
     
-    // Display statistics
-    diffHtml += `
-      <div class="diff-stats mb-3">
-        <div class="row text-center">
-          <div class="col-4">
-            <span class="badge bg-success">+${comparison.changes.added}</span>
-            <small class="d-block text-muted">Added</small>
-          </div>
-          <div class="col-4">
-            <span class="badge bg-danger">-${comparison.changes.removed}</span>
-            <small class="d-block text-muted">Removed</small>
-          </div>
-          <div class="col-4">
-            <span class="badge bg-info">${comparison.changes.changed}</span>
-            <small class="d-block text-muted">Changed</small>
-          </div>
-        </div>
-      </div>
-    `;
-    
-    // Display diff content
-    diffHtml += '<div class="diff-content">';
-    
-    comparison.diff.forEach(item => {
-      let itemClass = '';
-      let prefix = '';
-      
-      if (item.type === 'unchanged') {
-        itemClass = 'diff-unchanged';
-      } else if (item.type === 'added') {
-        itemClass = 'diff-added';
-        prefix = '+ ';
-      } else if (item.type === 'removed') {
-        itemClass = 'diff-removed';
-        prefix = '- ';
-      }
-      
-      diffHtml += `<div class="${itemClass}">${prefix}${item.text}</div>`;
-    });
-    
-    diffHtml += '</div>';
-    
-    return diffHtml;
-  }
-  
-  function formatArticleContent(content) {
-    if (!content) {
-      return '<p class="text-center text-muted small py-3">No content available</p>';
+    // Create visualization chart
+    if (analysis.categories) {
+      createBiasChart(analysis);
     }
     
-    // Split by paragraphs and format
-    return content
-      .split('\n')
-      .map(paragraph => {
-        if (paragraph.trim() === '') return '';
-        return `<p>${paragraph}</p>`;
-      })
-      .join('');
+    // Add export button if not exists
+    if (!document.getElementById('export-btn')) {
+      const exportBtn = document.createElement('button');
+      exportBtn.id = 'export-btn';
+      exportBtn.className = 'btn btn-outline-secondary btn-sm ms-2';
+      exportBtn.innerHTML = '<i class="bi bi-download"></i> Export';
+      exportBtn.onclick = exportAnalysis;
+      document.querySelector('.result-actions').appendChild(exportBtn);
+    }
+  }
+  
+  // Chart visualization functions
+  function createBiasChart(data) {
+    const ctx = document.getElementById('biasChart').getContext('2d');
+    if (window.biasChart) {
+      window.biasChart.destroy();
+    }
+    
+    window.biasChart = new Chart(ctx, {
+      type: 'radar',
+      data: {
+        labels: Object.keys(data.categories),
+        datasets: [{
+          label: 'Bias Categories',
+          data: Object.values(data.categories),
+          fill: true,
+          backgroundColor: 'rgba(54, 162, 235, 0.2)',
+          borderColor: 'rgb(54, 162, 235)',
+          pointBackgroundColor: 'rgb(54, 162, 235)',
+          pointBorderColor: '#fff',
+          pointHoverBackgroundColor: '#fff',
+          pointHoverBorderColor: 'rgb(54, 162, 235)'
+        }]
+      },
+      options: {
+        elements: {
+          line: { borderWidth: 3 }
+        },
+        scales: {
+          r: {
+            angleLines: { display: true },
+            suggestedMin: 0,
+            suggestedMax: 100
+          }
+        }
+      }
+    });
+  }
+  
+  // Real-time analysis function
+  let analysisTimeout;
+  function setupRealTimeAnalysis() {
+    const textArea = document.getElementById('article-text');
+    textArea.addEventListener('input', () => {
+      clearTimeout(analysisTimeout);
+      analysisTimeout = setTimeout(() => {
+        if (textArea.value.length > 100) {
+          analyzeText(textArea.value);
+        }
+      }, 1000);
+    });
+  }
+  
+  // Data export/import functions
+  function exportAnalysis() {
+    const dataStr = JSON.stringify(currentAnalysis, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `bias-analysis-${new Date().toISOString().slice(0,10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+  
+  function importAnalysis() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    
+    input.onchange = (e) => {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      
+      reader.onload = (event) => {
+        try {
+          const analysis = JSON.parse(event.target.result);
+          currentAnalysis = analysis;
+          displayAnalysisResults(analysis);
+          showResultsView();
+        } catch (error) {
+          showError('Invalid analysis file');
+        }
+      };
+      
+      reader.readAsText(file);
+    };
+    
+    input.click();
+  }
+  
+  // Error handling function
+  function showError(message) {
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'alert alert-danger alert-dismissible fade show';
+    errorDiv.innerHTML = `
+      ${message}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.insertBefore(errorDiv, document.body.firstChild);
+    
+    // Auto-dismiss after 5 seconds
+    setTimeout(() => {
+      const bsAlert = new bootstrap.Alert(errorDiv);
+      bsAlert.close();
+    }, 5000);
   }
   
   function getBiasLabel(score) {
@@ -597,25 +659,5 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       return 'bg-danger';
     }
-  }
-  
-  function showError(message) {
-    showInitialView();
-    
-    // Show error message
-    const errorAlert = document.createElement('div');
-    errorAlert.className = 'alert alert-danger alert-dismissible fade show mt-3';
-    errorAlert.innerHTML = `
-      ${message}
-      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    `;
-    
-    document.getElementById('alerts-container').appendChild(errorAlert);
-    
-    // Auto-dismiss after 5 seconds
-    setTimeout(() => {
-      const bsAlert = new bootstrap.Alert(errorAlert);
-      bsAlert.close();
-    }, 5000);
   }
 });

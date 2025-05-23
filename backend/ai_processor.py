@@ -2,6 +2,11 @@ import os
 import json
 import logging
 from openai import OpenAI
+import numpy as np
+from sentence_transformers import SentenceTransformer
+from sklearn.metrics.pairwise import cosine_similarity
+import re
+import nltk
 
 # Setup logging
 logging.basicConfig(level=logging.DEBUG)
@@ -19,7 +24,125 @@ if OPENAI_API_KEY:
 # Do not change this unless explicitly requested by the user
 MODEL = "gpt-4o"
 
+# Initialize sentence transformer model
+try:
+    sentence_model = SentenceTransformer('all-MiniLM-L6-v2')
+except Exception as e:
+    logging.warning(f"Could not load sentence transformer model: {e}")
+    sentence_model = None
+
+class AdvancedBiasDetector:
+    def __init__(self):
+        self.bias_patterns = {
+            'emotional': [
+                r'(obviously|clearly|undoubtedly|certainly)\s\w+',
+                r'(shocking|outrageous|scandalous|disgraceful)\s\w+',
+                r'(everyone|nobody|all)\s(knows|believes|thinks)\s'
+            ],
+            'loaded_language': [
+                r'(regime|puppet|thugs|radical|extremist)\s\w+',
+                r'(slammed|blasted|destroyed|crushed)\s\w+',
+                r'(liberal|conservative)\s(agenda|propaganda)\s'
+            ],
+            'false_equivalence': [
+                r'(both sides)\s\w+',
+                r'(equally|just as)\s(bad|good|responsible)\s',
+                r'(similar to|same as)\s\w+'
+            ]
+        }
+        
+    def detect_patterns(self, text):
+        """Detect bias patterns in text using regex"""
+        results = {}
+        for category, patterns in self.bias_patterns.items():
+            matches = []
+            for pattern in patterns:
+                found = re.findall(pattern, text, re.IGNORECASE)
+                if found:
+                    matches.extend(found)
+            if matches:
+                results[category] = matches
+        return results
+
+def calculate_sentence_similarity(text1, text2):
+    """Calculate semantic similarity between two texts"""
+    if sentence_model is None:
+        return 0.0
+        
+    try:
+        embeddings = sentence_model.encode([text1, text2])
+        similarity = cosine_similarity([embeddings[0]], [embeddings[1]])[0][0]
+        return float(similarity)
+    except Exception as e:
+        logging.error(f"Error calculating sentence similarity: {e}")
+        return 0.0
+
+def analyze_claim_evidence_matching(text):
+    """Analyze how well claims are supported by evidence"""
+    sentences = nltk.sent_tokenize(text)
+    claims = []
+    evidence = []
+    
+    # Simple heuristic to identify claims and evidence
+    for sent in sentences:
+        if any(word in sent.lower() for word in ['claim', 'argue', 'suggest', 'believe']):
+            claims.append(sent)
+        elif any(word in sent.lower() for word in ['study', 'research', 'data', 'according']):
+            evidence.append(sent)
+            
+    # Calculate claim-evidence relationships
+    relationships = []
+    for claim in claims:
+        best_match = None
+        best_score = 0
+        for evid in evidence:
+            score = calculate_sentence_similarity(claim, evid)
+            if score > best_score:
+                best_score = score
+                best_match = evid
+        if best_match:
+            relationships.append({
+                'claim': claim,
+                'evidence': best_match,
+                'strength': best_score
+            })
+            
+    return relationships
+
 def detect_bias(text, api_key=None):
+    """
+    Enhanced bias detection using both ML models and GPT-4
+    """
+    try:
+        # Initialize advanced detector
+        advanced_detector = AdvancedBiasDetector()
+        
+        # Detect bias patterns
+        pattern_results = advanced_detector.detect_patterns(text)
+        
+        # Analyze claim-evidence relationships
+        evidence_analysis = analyze_claim_evidence_matching(text)
+        
+        # Get GPT-4 analysis
+        gpt_analysis = detect_bias_with_gpt4(text, api_key)
+        
+        # Combine all analyses
+        combined_analysis = {
+            'bias_detected': bool(pattern_results) or bool(gpt_analysis.get('bias_instances')),
+            'pattern_analysis': pattern_results,
+            'evidence_analysis': evidence_analysis,
+            'gpt_analysis': gpt_analysis,
+            'categories': calculate_category_scores(pattern_results, gpt_analysis),
+            'overall_score': calculate_overall_bias_score(pattern_results, evidence_analysis, gpt_analysis)
+        }
+        
+        return combined_analysis
+        
+    except Exception as e:
+        logging.error(f"Error in enhanced bias detection: {e}", exc_info=True)
+        return fallback_analysis(text)
+
+def detect_bias_with_gpt4(text, api_key=None):
     """
     Detect bias in a text using OpenAI's GPT-4o model
     

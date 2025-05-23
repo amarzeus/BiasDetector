@@ -1,62 +1,290 @@
-
 # Standard library imports
 import os
 import sys
 import argparse
 import logging
+import time
+from functools import wraps
+from datetime import datetime
+import json
+from pathlib import Path
 
 # Third-party imports
-from flask import Flask, render_template, send_from_directory, request, jsonify
+from flask import Flask, render_template, send_from_directory, request, jsonify, make_response
 from flask_cors import CORS
 import markdown
+from werkzeug.contrib.cache import SimpleCache
+from prometheus_client import Counter, Histogram, generate_latest
 
+
+# Configure metrics
+REQUEST_COUNT = Counter('request_count', 'App Request Count', ['method', 'endpoint', 'status'])
+REQUEST_LATENCY = Histogram('request_latency_seconds', 'Request latency', ['endpoint'])
 
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
-logger = logging.getLogger("BiasBuster")
+logger = logging.getLogger("BiasDetector")
 
+# Initialize cache with larger default timeout for API responses
+cache = SimpleCache(default_timeout=300)
+
+class Config:
+    def __init__(self):
+        self.config_path = Path("config.json")
+        self.load_config()
+        
+    def load_config(self):
+        if self.config_path.exists():
+            with open(self.config_path) as f:
+                self.settings = json.load(f)
+        else:
+            self.settings = {
+                "api": {
+                    "rate_limit": 100,
+                    "cache_timeout": 300
+                },
+                "analysis": {
+                    "min_text_length": 100,
+                    "max_text_length": 10000,
+                    "default_model": "gpt-4o"
+                },
+                "features": {
+                    "real_time_analysis": True,
+                    "source_credibility": True,
+                    "comparative_analysis": True
+                }
+            }
+            self.save_config()
+            
+    def save_config(self):
+        with open(self.config_path, "w") as f:
+            json.dump(self.settings, f, indent=2)
+            
+config = Config()
+
+# Enhanced performance monitoring decorator
+def monitor_performance(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        start_time = time.time()
+        status_code = 200
+        
+        try:
+            response = f(*args, **kwargs)
+            
+            if isinstance(response, (tuple, list)):
+                response, status_code = response
+                
+        except Exception as e:
+            status_code = 500
+            raise
+            
+        finally:
+            duration = time.time() - start_time
+            endpoint = request.endpoint or 'unknown'
+            
+            # Update metrics
+            REQUEST_COUNT.labels(
+                method=request.method,
+                endpoint=endpoint,
+                status=status_code
+            ).inc()
+            
+            REQUEST_LATENCY.labels(
+                endpoint=endpoint
+            ).observe(duration)
+            
+            # Log detailed performance data
+            logger.info({
+                'method': request.method,
+                'path': request.path,
+                'endpoint': endpoint,
+                'duration': f"{duration:.2f}s",
+                'status': status_code,
+                'ip': request.remote_addr
+            })
+        
+        if isinstance(response, str):
+            response = make_response(response)
+            
+        # Add performance headers
+        response.headers['X-Response-Time'] = f"{duration:.2f}s"
+        response.headers['X-Rate-Limit-Remaining'] = str(get_rate_limit())
+        
+        return response if isinstance(response, str) else (response, status_code)
+    return decorated_function
+
+# Rate limiting functionality
+def get_rate_limit():
+    """Get remaining API calls for current IP"""
+    ip = request.remote_addr
+    current = cache.get(f"rate_limit_{ip}") or 0
+    return max(0, config.settings['api']['rate_limit'] - current)
+
+def update_rate_limit():
+    """Update rate limit counter for current IP"""
+    ip = request.remote_addr
+    current = cache.get(f"rate_limit_{ip}") or 0
+    cache.set(f"rate_limit_{ip}", current + 1, timeout=3600)
+
+# Error handling decorator
+def handle_errors(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except Exception as e:
+            logger.exception(f"Error in {f.__name__}: {str(e)}")
+            error_response = {
+                'error': str(e),
+                'type': e.__class__.__name__,
+                'timestamp': datetime.utcnow().isoformat()
+            }
+            return jsonify(error_response), 500
+    return decorated_function
 
 # Create Flask application
 app = Flask(__name__, static_folder='docs/assets')
-app.secret_key = os.environ.get("SESSION_SECRET", "bias_buster_secret_key")
+app.secret_key = os.environ.get("SESSION_SECRET", "bias_detector_secret_key")
 
-# Enable CORS
-CORS(app, origins="*", supports_credentials=True)
+# Enable CORS with more specific configuration
+CORS(app, 
+     origins=["http://localhost:*", "https://*.biasdetector.dev"],
+     supports_credentials=True,
+     methods=["GET", "POST", "OPTIONS"],
+     allow_headers=["Content-Type", "Authorization"])
 
 
-# Register backend API endpoints if available
+# Register backend API endpoints with enhanced functionality
 try:
-    from backend.app import health_check, analyze, rewrite, analyze_and_rewrite
-    app.add_url_rule('/health', view_func=health_check, methods=['GET'])
-    app.add_url_rule('/analyze', view_func=analyze, methods=['POST'])
-    app.add_url_rule('/rewrite', view_func=rewrite, methods=['POST'])
-    app.add_url_rule('/analyze_and_rewrite', view_func=analyze_and_rewrite, methods=['POST'])
+    from backend.app import (
+        health_check, analyze, rewrite, analyze_and_rewrite,
+        analyze_v2, comparative_analysis, check_source_credibility
+    )
+    
+    @app.route('/health', methods=['GET'])
+    @monitor_performance
+    @handle_errors
+    def wrapped_health_check():
+        status = health_check()
+        return {
+            **status,
+            'config': config.settings,
+            'metrics': {
+                'requests': generate_latest().decode()
+            }
+        }
+    
+    @app.route('/api/v2/analyze', methods=['POST'])
+    @monitor_performance
+    @handle_errors
+    def wrapped_analyze_v2():
+        if get_rate_limit() <= 0:
+            return jsonify({
+                'error': 'Rate limit exceeded',
+                'retry_after': 3600
+            }), 429
+            
+        update_rate_limit()
+        return analyze_v2()
+        
+    @app.route('/api/v2/compare', methods=['POST'])
+    @monitor_performance
+    @handle_errors
+    def wrapped_comparative_analysis():
+        if get_rate_limit() <= 0:
+            return jsonify({
+                'error': 'Rate limit exceeded',
+                'retry_after': 3600
+            }), 429
+            
+        update_rate_limit()
+        return comparative_analysis()
+        
+    @app.route('/api/v2/source-credibility', methods=['GET'])
+    @monitor_performance
+    @handle_errors
+    def wrapped_source_credibility():
+        if get_rate_limit() <= 0:
+            return jsonify({
+                'error': 'Rate limit exceeded',
+                'retry_after': 3600
+            }), 429
+            
+        update_rate_limit()
+        return check_source_credibility()
+        
+    # Legacy API endpoints with rate limiting
+    @app.route('/analyze', methods=['POST'])
+    @monitor_performance
+    @handle_errors
+    def wrapped_analyze():
+        if get_rate_limit() <= 0:
+            return jsonify({
+                'error': 'Rate limit exceeded',
+                'retry_after': 3600
+            }), 429
+            
+        update_rate_limit()
+        return analyze()
+    
+    @app.route('/rewrite', methods=['POST'])
+    @monitor_performance
+    @handle_errors
+    def wrapped_rewrite():
+        return rewrite()
+    
+    @app.route('/analyze_and_rewrite', methods=['POST'])
+    @monitor_performance
+    @handle_errors
+    def wrapped_analyze_and_rewrite():
+        return analyze_and_rewrite()
+    
     logger.info("Backend API routes registered successfully")
 except ImportError as e:
     logger.warning(f"Failed to import backend API: {e}")
 
+# Add system health endpoint
+@app.route('/system/health')
+@monitor_performance
+def system_health():
+    health_info = {
+        'status': 'healthy',
+        'timestamp': datetime.utcnow().isoformat(),
+        'version': os.environ.get('APP_VERSION', '1.0.0'),
+        'python_version': sys.version,
+        'environment': os.environ.get('FLASK_ENV', 'production')
+    }
+    return jsonify(health_info)
 
-# Utility: Render Markdown documentation with optional YAML front matter for title
-def render_markdown(path):
-    try:
-        with open(path, 'r', encoding='utf-8') as f:
-            content = f.read()
-            title = "BiasBuster"
-            if content.startswith('---'):
-                end = content.find('---', 3)
-                if end != -1:
-                    front_matter = content[3:end].strip()
-                    for line in front_matter.split('\n'):
-                        if line.startswith('title:'):
-                            title = line[6:].strip()
-                    content = content[end+3:].strip()
-            html_content = markdown.markdown(content, extensions=['fenced_code', 'tables'])
-            return render_template('layout.html', title=title, content=html_content)
-    except FileNotFoundError:
-        return "Page not found", 404
+# Utility: Render Markdown documentation with caching
+def render_markdown(path, cache_timeout=300):  # Cache for 5 minutes
+    cache_key = f'markdown_{path}'
+    content = cache.get(cache_key)
+    
+    if content is None:
+        try:
+            with open(path, 'r', encoding='utf-8') as f:
+                content = f.read()
+                title = "BiasBuster"
+                if content.startswith('---'):
+                    end = content.find('---', 3)
+                    if end != -1:
+                        front_matter = content[3:end].strip()
+                        for line in front_matter.split('\n'):
+                            if line.startswith('title:'):
+                                title = line[6:].strip()
+                        content = content[end+3:].strip()
+                html_content = markdown.markdown(content, extensions=['fenced_code', 'tables'])
+                rendered = render_template('layout.html', title=title, content=html_content)
+                cache.set(cache_key, rendered, timeout=cache_timeout)
+                return rendered
+        except FileNotFoundError:
+            return "Page not found", 404
+    return content
 
 
 # Documentation and static asset routes

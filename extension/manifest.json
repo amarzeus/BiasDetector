@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "BiasDetector",
-  "version": "1.0.0",
-  "description": "Detects bias in news articles and rewrites them to present balanced viewpoints",
+  "version": "1.1.0",
+  "description": "Advanced tool for detecting and mitigating bias in text content. Analyze news articles, social media, and personal writing for balanced viewpoints.",
   "author": "Amar Kumar",
   "icons": {
     "16": "images/icon16.svg",
@@ -15,15 +15,22 @@
       "16": "images/icon16.svg",
       "48": "images/icon48.svg",
       "128": "images/icon128.svg"
-    }
-  },
-  "permissions": [
+    },
+    "default_title": "BiasDetector - Click to analyze"
+  },  "permissions": [
     "activeTab",
     "storage",
-    "scripting"
+    "scripting",
+    "contextMenus",
+    "notifications",
+    "downloads"
+  ],
+  "optional_permissions": [
+    "bookmarks"
   ],
   "host_permissions": [
-    "http://localhost:5000/*"
+    "http://localhost:5000/*",
+    "https://*.biasdetector.dev/*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -34,5 +41,26 @@
       "js": ["content.js"],
       "css": ["styles.css"]
     }
-  ]
+  ],
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+B",
+        "mac": "Command+Shift+B"
+      },
+      "description": "Open BiasDetector"
+    },
+    "analyze_selection": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+A",
+        "mac": "Command+Shift+A"
+      },
+      "description": "Analyze selected text"
+    }
+  },
+  "web_accessible_resources": [{
+    "resources": ["images/*", "styles/*"],
+    "matches": ["<all_urls>"]
+  }],
+  "options_page": "options.html"
 }

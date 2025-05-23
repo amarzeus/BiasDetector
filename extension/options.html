@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BiasDetector Settings</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+        
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .section {
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .section:last-child {
+            border-bottom: none;
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 30px;
+        }
+
+        h2 {
+            color: #34495e;
+            font-size: 1.5em;
+            margin-bottom: 15px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #2c3e50;
+        }
+
+        input[type="text"],
+        input[type="password"],
+        select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .checkbox-group {
+            margin: 10px 0;
+        }
+
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #2980b9;
+        }
+
+        .status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .theme-preview {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>BiasDetector Settings</h1>
+        
+        <div class="section">
+            <h2>API Configuration</h2>
+            <div class="form-group">
+                <label for="apiKey">OpenAI API Key</label>
+                <input type="password" id="apiKey" placeholder="Enter your OpenAI API key">
+            </div>
+            <div class="form-group">
+                <label for="apiEndpoint">Custom API Endpoint (Optional)</label>
+                <input type="text" id="apiEndpoint" placeholder="https://api.your-server.com">
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Analysis Settings</h2>
+            <div class="checkbox-group">
+                <label>
+                    <input type="checkbox" id="detectPolitical" checked>
+                    Detect Political Bias
+                </label>
+            </div>
+            <div class="checkbox-group">
+                <label>
+                    <input type="checkbox" id="detectEmotional" checked>
+                    Detect Emotional Bias
+                </label>
+            </div>
+            <div class="checkbox-group">
+                <label>
+                    <input type="checkbox" id="detectFactual" checked>
+                    Detect Factual Bias
+                </label>
+            </div>
+            <div class="form-group">
+                <label for="minConfidence">Minimum Confidence Score</label>
+                <select id="minConfidence">
+                    <option value="0.5">50% (More Detection)</option>
+                    <option value="0.7" selected>70% (Balanced)</option>
+                    <option value="0.9">90% (High Precision)</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Display Settings</h2>
+            <div class="form-group">
+                <label for="theme">Theme</label>
+                <select id="theme">
+                    <option value="light">Light</option>
+                    <option value="dark">Dark</option>
+                    <option value="system">System Default</option>
+                </select>
+            </div>
+            <div class="theme-preview" id="themePreview">
+                Theme Preview
+            </div>
+            <div class="form-group">
+                <label for="highlightColor">Highlight Color</label>
+                <input type="color" id="highlightColor" value="#FFE4E1">
+            </div>
+            <div class="checkbox-group">
+                <label>
+                    <input type="checkbox" id="showTooltips" checked>
+                    Show Explanation Tooltips
+                </label>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Notification Settings</h2>
+            <div class="checkbox-group">
+                <label>
+                    <input type="checkbox" id="enableNotifications" checked>
+                    Enable Desktop Notifications
+                </label>
+            </div>
+            <div class="checkbox-group">
+                <label>
+                    <input type="checkbox" id="soundAlerts">
+                    Enable Sound Alerts
+                </label>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Performance</h2>
+            <div class="form-group">
+                <label for="cacheTime">Cache Duration</label>
+                <select id="cacheTime">
+                    <option value="0">No Cache</option>
+                    <option value="3600">1 Hour</option>
+                    <option value="86400" selected>24 Hours</option>
+                    <option value="604800">1 Week</option>
+                </select>
+            </div>
+            <div class="checkbox-group">
+                <label>
+                    <input type="checkbox" id="realTimeAnalysis">
+                    Enable Real-time Analysis
+                </label>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Keyboard Shortcuts</h2>
+            <div class="form-group">
+                <label>Open BiasDetector</label>
+                <input type="text" id="shortcutOpen" value="Ctrl+Shift+B" readonly>
+            </div>
+            <div class="form-group">
+                <label>Analyze Selection</label>
+                <input type="text" id="shortcutAnalyze" value="Ctrl+Shift+A" readonly>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Data Management</h2>
+            <button id="exportData">Export Settings</button>
+            <button id="importData">Import Settings</button>
+            <button id="resetData" style="background: #e74c3c;">Reset All Settings</button>
+        </div>
+
+        <div id="status" class="status" style="display: none;"></div>
+        
+        <div style="text-align: center; margin-top: 20px;">
+            <button id="saveSettings">Save Settings</button>
+        </div>
+    </div>
+    <script src="options.js"></script>
+</body>
+</html>
